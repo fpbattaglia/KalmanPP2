@@ -151,7 +151,7 @@ class UKFVoss(object):
 		if initial_condition is not None:
 			x_hat[:, 0] = initial_condition
 		else:
-			x_hat[:, 0] = y[:, 0]  # first guess of x_1 set to observation
+			x_hat[self.dq, 0] = y[0, 0]  # first guess of x_1 set to observation
 
 		Pxx = np.zeros((dx, dx, ll))
 
