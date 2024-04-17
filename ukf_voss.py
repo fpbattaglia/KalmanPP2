@@ -201,7 +201,7 @@ class FNModel(UKFModel):
 		# p = p.ravel()
 		x = np.atleast_2d(x)
 		# return np.array([c * (x[1,:] + x[0,:] - x[0,:]**3 / 3 + p), -(x[0,:] - a + b * x[1,:]) / c])
-		rr = [np.atleast_2d(c * (x[1, :] + x[0, :] - x[0, :] ** 3 / 3 + p)),
+		rr = [np.atleast_2d(c * (x[1, :] + x[0, :] - x[0, :] ** 3 / 3 + p[0, :])),
 			  np.atleast_2d(-(x[0, :] - a + b * x[1, :]) / c)]
 		# print(rr)
 		return np.vstack(rr)
