@@ -27,6 +27,13 @@ from scipy.linalg import sqrtm, block_diag
 
 
 class UKFModel(object):
+	"""A class representing a model for a  Unscented Kalman Filter.
+
+	Attributes:
+	    Q_par (float): Initial value for parameter covariance.
+	    Q_var (float): Initial value for variable covariance.
+	    R (ndarray): Observation covariance.
+	"""
 	def __init__(self):
 		self.Q_par = 0.1  # initial value for parameter covariance
 		self.Q_var = 0.1  # initial value for variable covariance
@@ -50,6 +57,14 @@ class UKFModel(object):
 
 class UKFVoss(object):
 	def __init__(self, model: UKFModel, ll=800, dT=0.2, dt=0.02):
+		"""
+		Initialization method for the class.
+
+		:param model: an instance of the UKFModel class
+		:param ll: number of data samples (default is 800)
+		:param dT: sampling time step (global variable) (default is 0.2)
+		:param dt: local integration step (default is 0.02)
+		"""
 		# Dimensions: dq for param. vector, dx augmented state, dy observation
 		self.model = model
 		self.dq = model.n_params()
@@ -142,6 +157,12 @@ class UKFVoss(object):
 		return x_hat, Pxx, K
 
 	def filter(self, y, initial_condition=None):
+		"""
+		:param y: The observed data, an array of shape (dy, ll), where dy is the number of observed variables and ll is the number of time steps.
+		:param initial_condition: The initial condition for the estimation, an array of shape (dx,), where dx is the number of state variables. Defaults to None.
+		:return: Tuple containing the estimated state trajectory x_hat, the covariance matrix Pxx, the Kalman gains Ks, and the estimation errors. All of them are arrays of shape (dx, ll), where dx is the number of state variables and ll is the number of time steps.
+
+		"""
 		ll = self.ll
 		dx = self.dx
 		dy = self.dy
@@ -174,19 +195,66 @@ class UKFVoss(object):
 		return x_hat, Pxx, Ks, errors
 
 	def covariance_postprocessing(self, P):
+		"""
+		Perform post-processing on the covariance matrix P, to enable for example covariance inflation.
+
+		:param P: The original covariance matrix.
+		:return: The processed covariance matrix P_out.
+		"""
 		P_out = P.copy()
 		P_out[:self.dq, :self.dq] = self.model.Q_par
 		return P_out
 
 # Results
 	def stats(self):
+		"""
+		.. method:: stats(self)
+
+		    This method calculates the square root of diagonal elements of a matrix and stores it in an array.
+
+		    :return: A 2-dimensional NumPy array containing the computed square roots of diagonal elements.
+		"""
 		errors = np.zeros((self.dx, self.ll))
 		for k in range(self.ll):
 			errors[:, k] = np.sqrt(np.diag(self.Pxx[:, :, k]))
 
 
 class FNModel(UKFModel):
+	"""
+	The `FNModel` class is used to represent a FitzHugh-Nagumo model. It inherits from the `UKFModel` class.
+
+	Methods:
+	---------
+
+	__init__(self, a=0.7, b=0.8, c=3., Q_par=0.015, Q_var=np.array((1.,)), R=1.)
+		Initializes an instance of the `FNModel` class.
+
+	f_model(self, x, p)
+		Takes two parameters, `x` and `p`, which are arrays. It computes and returns a 2D array of values based on the given formulas.
+
+	obs_g_model(self, x)
+		Takes a 2D array representing the input data and returns a 1D array representing the observations (in this case the membrane potential variables).
+
+	n_params(self)
+		Returns the number of parameters.
+
+	n_variables(self)
+		Returns the number of variables.
+
+	n_observables(self)
+		Returns the number of observables.
+	"""
 	def __init__(self, a=0.7, b=0.8, c=3., Q_par=0.015, Q_var=np.array((1.,)), R=1.):
+		"""
+		Initializes an instance of the FNModel class.
+
+		:param a: a float representing the value of parameter a (default 0.7)
+		:param b: a float representing the value of parameter b (default 0.8)
+		:param c: a float representing the value of parameter c (default 3.0)
+		:param Q_par: a float representing the initial value for parameter covariance (default 0.015)
+		:param Q_var: a numpy array representing the initial value for variable covariance (default np.array((1.,)))
+		:param R: a float representing the observation covariance (default 1.0)
+		"""
 		super(FNModel, self).__init__()
 		self.a = a
 		self.b = b
@@ -197,6 +265,18 @@ class FNModel(UKFModel):
 		self.R = R  # observation covariance
 
 	def f_model(self, x, p):
+		"""
+		:param x: the input array
+		:param p: the input array
+		:return: a 2D array containing computed values based on the input arrays
+
+		This method takes in two parameters, `x` and `p`, which are arrays. It computes and returns a 2D array of values based on the given formulas.
+
+		The parameter `x` represents an input array.
+		The parameter `p` represents an input array.
+
+		The return value is a 2D array containing computed values based on the input arrays `x` and `p`.
+		"""
 		a, b, c = self.a, self.b, self.c
 		# p = p.ravel()
 		x = np.atleast_2d(x)
@@ -207,20 +287,54 @@ class FNModel(UKFModel):
 		return np.vstack(rr)
 
 	def obs_g_model(self, x):
+		"""
+		:param x: A 2-dimensional array representing the input data. The array should have shape (n, m), where n is the number of samples and m is the number of features.
+		:return: A 1-dimensional array representing the observations (in this case the membrane potential variables). The array will have shape (m,) where m is the number of features.
+		"""
 		return x[1, :]
 
 	def n_params(self):
+		"""
+		Returns the number of parameters.
+
+		:return: The number of parameters.
+		:rtype: int
+		"""
 		return 1
 
 	def n_variables(self):
+		"""
+		Returns the number of variables.
+
+		:return: The number of variables defined in the method.
+		:rtype: int
+		"""
 		return 2
 
 	def n_observables(self):
+		"""
+		Returns the number of observables.
+
+		:return: Number of observables.
+		:rtype: int
+		"""
 		return 1
 
 
 class NatureSystem(object):
 	def __init__(self, ll, dT, dt, n_variables, n_params, n_observations, initial_condition=None):
+		"""
+		Constructor for the class.
+
+		:param ll: The length of the time series.
+		:param dT: The time step for the time series.
+		:param dt: The time step for integration.
+		:param n_variables: The number of variables in the system.
+		:param n_params: The number of parameters in the system.
+		:param n_observations: The number of observations in the time series.
+		:param initial_condition: The initial condition for the variables. Defaults to None.
+
+		"""
 		self.dT = dT
 		self.dt = dt
 		self.ll = ll
@@ -234,6 +348,11 @@ class NatureSystem(object):
 		return np.array([])
 
 	def integrateRK4(self):
+		"""
+		Integrates the system of ordinary differential equations using the fourth order Runge-Kutta method.
+
+		:return: None
+		"""
 		nn = int(self.dT / self.dt)  # the integration time step is smaller than dT
 		for n in range(self.ll - 1):
 			xx = self.x0[:, n]
@@ -250,7 +369,56 @@ class NatureSystem(object):
 
 
 class FNNature(NatureSystem):
+	"""
+	Class FNNature
+	===============
+
+	Class representing a nature system with FitzHugh-Nagumo equations.
+
+	Attributes
+	----------
+	ll : int
+	    Length of the system.
+	dT : float
+	    Duration of the simulation.
+	dt : float
+	    Time step for the simulation.
+	a : float
+	    Parameter 'a' in the FitzHugh-Nagumo equations.
+	b : float
+	    Parameter 'b' in the FitzHugh-Nagumo equations.
+	c : float
+	    Parameter 'c' in the FitzHugh-Nagumo equations.
+	R0 : float
+	    Initial value for the noise variance.
+	initial_condition : ndarray, optional
+	    Initial condition for the system.
+
+	Methods
+	-------
+	__init__(ll, dT, dt, a=0.7, b=0.8, c=3., R0=0.2, initial_condition=None)
+	    Initializes the FNNature object.
+	system(x, p)
+	    Returns the value of the system equations for given state and parameter arrays.
+	set_current()
+	    Sets the current value for the system.
+	observations()
+	    Calculates the observations based on the system's state and noise.
+
+	"""
 	def __init__(self, ll, dT, dt, a=0.7, b=0.8, c=3., R0=0.2, initial_condition=None):
+		"""
+		Initialize the FNNature object.
+
+		:param ll: Length of the time horizon in days.
+		:param dT: Length of each time step in days.
+		:param dt: Integration step size in days.
+		:param a: Parameter a for the FNNature model (default=0.7).
+		:param b: Parameter b for the FNNature model (default=0.8).
+		:param c: Parameter c for the FNNature model (default=3.0).
+		:param R0: Initial value of R for the FNNature model (default=0.2).
+		:param initial_condition: Initial condition for the FNNature model (default=None).
+		"""
 		super(FNNature, self).__init__(ll, dT, dt, 2, 1, 1, initial_condition)
 		self.a = a
 		self.b = b
@@ -262,15 +430,28 @@ class FNNature(NatureSystem):
 		self.observations()
 
 	def system(self, x, p):
+		"""
+
+		"""
 		return np.array([self.c * (x[1] + x[0] - x[0] ** 3 / 3 + p[0]), -(x[0] - self.a + self.b * x[1]) / self.c])
 
 	def set_current(self):
+		"""
+		Sets the current value in the self.p array.
+
+		:return: None
+		"""
 		# External input, estimated as parameter p later on
 		z = (np.arange(self.ll) / 250) * 2 * np.pi
 		z = -0.4 - 1.01 * np.abs(np.sin(z / 2))
 		self.p[0, :] = z
 
 	def observations(self):
+		"""
+		Calculates the observations based on the system's state and noise.
+
+		:return: None
+		"""
 		self.R = self.R0 ** 2 * np.var(self.x0[0, :])
 		self.y[0, :] = self.x0[0, :] + np.sqrt(self.R) * np.random.randn(self.ll)
 
