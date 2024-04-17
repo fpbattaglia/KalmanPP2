@@ -141,13 +141,17 @@ class UKFVoss(object):
 
 		return x_hat, Pxx, K
 
-	def filter(self, y):
+	def filter(self, y, initial_condition=None):
 		ll = self.ll
 		dx = self.dx
 		dy = self.dy
 
 		x_hat = np.zeros((dx, ll))
-		x_hat[:, 0] = y[:, 0]  # first guess of x_1 set to observation
+
+		if initial_condition is not None:
+			x_hat[:, 0] = initial_condition
+		else:
+			x_hat[:, 0] = y[:, 0]  # first guess of x_1 set to observation
 
 		Pxx = np.zeros((dx, dx, ll))
 
