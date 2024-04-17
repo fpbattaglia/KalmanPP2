@@ -1,5 +1,5 @@
 """
-Voss implementation of the unscented Kalman filter
+Voss's implementation of the unscented Kalman filter
 """
 
 # Original credit
@@ -28,7 +28,9 @@ from scipy.linalg import sqrtm, block_diag
 
 class UKFModel(object):
 	def __init__(self):
-		pass
+		self.Q_par = 0.1  # initial value for parameter covariance
+		self.Q_var = 0.1  # initial value for variable covariance
+		self.R = np.array((1,))  # observation covariance
 
 	def f_model(self, x, p):
 		return np.array([])
@@ -47,22 +49,21 @@ class UKFModel(object):
 
 
 class UKFVoss(object):
-	def __init__(self, model: UKFModel):
+	def __init__(self, model: UKFModel, ll=800, dT=0.2, dt=0.02):
 		# Dimensions: dq for param. vector, dx augmented state, dy observation
 		self.model = model
 		self.dq = model.n_params()
 		self.dx = self.dq + model.n_variables()
 		self.dy = model.n_observables()
 
-		self.ll = 800  # number of data samples
-		self.dT = 0.2  # sampling time step (global variable)
-		self.dt = 0.02  # local integration step
-		self.Q = 0.015  # process noise covariance matrix
-		# Q = 0.0001
-		self.R0 = 0.2  # observation noise standard deviation, in units of the standard deviations of the "signal"
+		self.ll = ll  # number of data samples
+		self.dT = dT  # sampling time step (global variable)
+		self.dt = dt  # local integration step
+		self.Q = block_diag(model.Q_par, model.Q_var)  # process noise covariance matrix
+		self.R = model.R
 		self.Pxx = None
 		self.Ks = None
-		self.xhat = None
+		self.x_hat = None
 
 	def evolve_f(self, x):
 		"""
@@ -95,11 +96,11 @@ class UKFVoss(object):
 		r = np.vstack([x[:dq, :], xnl])
 		return r
 
-	def unscented_transform(self, xhat, Pxx, y, R):
+	def unscented_transform(self, x_hat, Pxx, y, R):
 		"""
 		This method performs an unscented transform for a given set of parameters.
 
-		:param xhat: Initial state estimate
+		:param x_hat: Initial state estimate
 		:param Pxx: Covariance matrix of the state estimate
 		:param y: Measurement vector
 		:param R: Measurement noise covariance matrix
@@ -114,7 +115,7 @@ class UKFVoss(object):
 		N = 2 * dx
 
 		xsigma = sqrtm(dx * Pxx).T  # Pxx = root * root', but Pxx = chol' * chol
-		Xa = xhat[:, np.newaxis] + np.hstack([xsigma, -xsigma])
+		Xa = x_hat[:, np.newaxis] + np.hstack([xsigma, -xsigma])
 		X = fct(Xa)
 
 		x_tilde = np.mean(X, axis=1)  # same as x_tilde = np.sum(X, axis=1) / N
@@ -135,22 +136,22 @@ class UKFVoss(object):
 			Pxy += np.outer((X[:, i] - x_tilde), (Y[:, i] - y_tilde)) / N
 
 		K = np.dot(Pxy, np.linalg.inv(Pyy))  # same as K = np.dot(Pxy, np.linalg.inv(Pyy))
-		xhat = x_tilde + np.dot(K, (y - y_tilde))
+		x_hat = x_tilde + np.dot(K, (y - y_tilde))
 		Pxx = Pxx - np.dot(K, Pxy.T)
 
-		return xhat, Pxx, K
+		return x_hat, Pxx, K
 
 	def filter(self, y):
 		ll = self.ll
 		dx = self.dx
 		dy = self.dy
 
-		xhat = np.zeros((dx, ll))
-		xhat[:, 0] = y[:, 0]  # first guess of x_1 set to observation
+		x_hat = np.zeros((dx, ll))
+		x_hat[:, 0] = y[:, 0]  # first guess of x_1 set to observation
 
 		Pxx = np.zeros((dx, dx, ll))
 
-		Pxx[:, :, 0] = block_diag(Q, R, R)
+		Pxx[:, :, 0] = self.Q
 
 		# Variables for the estimation
 		errors = np.zeros((dx, ll))
@@ -158,26 +159,38 @@ class UKFVoss(object):
 
 		# Main loop for recursive estimation
 		for k in range(1, ll):
-			xhat[:, k], Pxx[:, :, k], Ks[:, :, k] = self.unscented_transform(xhat[:, k - 1], Pxx[:, :, k - 1], y[:, k], R)
-
-			Pxx[0, 0, k] = Q
+			x_hat[:, k], Pxx[:, :, k], Ks[:, :, k] = self.unscented_transform(x_hat[:, k - 1], Pxx[:, :, k - 1], y[:, k], self.R)
+			# Pxx[0, 0, k] = self.model.Q_par
+			Pxx[:, :, k] = self.covariance_postprocessing(Pxx[:, :, k])
+			errors[:, k] = np.sqrt(np.diag(Pxx[:, :, k]))
 
 		self.Pxx = Pxx
 		self.Ks = Ks
-		self.xhat = xhat
-		return xhat, Pxx, Ks
+		self.x_hat = x_hat
+		return x_hat, Pxx, Ks, errors
+
+	def covariance_postprocessing(self, P):
+		P_out = P.copy()
+		P_out[:self.dq, :self.dq] = self.model.Q_par
+		return P_out
 
 # Results
 	def stats(self):
 		errors = np.zeros((self.dx, self.ll))
 		for k in range(self.ll):
 			errors[:, k] = np.sqrt(np.diag(self.Pxx[:, :, k]))
+
+
 class FNModel(UKFModel):
-	def __init__(self, a=0.7, b=0.8, c=3.):
+	def __init__(self, a=0.7, b=0.8, c=3., Q_par=0.015, Q_var=np.array((1.,)), R=1.):
 		super(FNModel, self).__init__()
 		self.a = a
 		self.b = b
 		self.c = c
+		self.Q = 0.015
+		self.Q_par = Q_par  # initial value for parameter covariance
+		self.Q_var = Q_var  # # initial value for variable covariance
+		self.R = R  # observation covariance
 
 	def f_model(self, x, p):
 		a, b, c = self.a, self.b, self.c
@@ -200,3 +213,73 @@ class FNModel(UKFModel):
 
 	def n_observables(self):
 		return 1
+
+
+class NatureSystem(object):
+	def __init__(self, ll, dT, dt, n_variables, n_params, n_observations, initial_condition=None):
+		self.dT = dT
+		self.dt = dt
+		self.ll = ll
+		self.x0 = np.zeros((n_variables, ll))
+		self.y = np.zeros((n_observations, ll))
+		self.p = np.zeros((n_params, ll))
+		if initial_condition is not None:
+			self.x0[:, 0] = initial_condition
+
+	def system(self, x, p):
+		return np.array([])
+
+	def integrateRK4(self):
+		nn = int(self.dT / self.dt)  # the integration time step is smaller than dT
+		for n in range(self.ll - 1):
+			xx = self.x0[:, n]
+			for i in range(nn):
+				k1 = self.dt * self.system(xx, self.p[:, n])
+				k2 = self.dt * self.system(xx + k1 / 2, self.p[:, n])
+				k3 = self.dt * self.system(xx + k2 / 2, self.p[:, n])
+				k4 = self.dt * self.system(xx + k3, self.p[:, n])
+				xx = xx + k1 / 6 + k2 / 3 + k3 / 3 + k4 / 6
+			self.x0[:, n + 1] = xx
+
+	def observations(self):
+		pass
+
+
+class FNNature(NatureSystem):
+	def __init__(self, ll, dT, dt, a=0.7, b=0.8, c=3., R0=0.2, initial_condition=None):
+		super(FNNature, self).__init__(ll, dT, dt, 2, 1, 1, initial_condition)
+		self.a = a
+		self.b = b
+		self.c = c
+		self.R0 = R0
+		self.R = R0
+		self.set_current()
+		self.integrateRK4()
+		self.observations()
+
+	def system(self, x, p):
+		return np.array([self.c * (x[1] + x[0] - x[0] ** 3 / 3 + p[0]), -(x[0] - self.a + self.b * x[1]) / self.c])
+
+	def set_current(self):
+		# External input, estimated as parameter p later on
+		z = (np.arange(self.ll) / 250) * 2 * np.pi
+		z = -0.4 - 1.01 * np.abs(np.sin(z / 2))
+		self.p[0, :] = z
+
+	def observations(self):
+		self.R = self.R0 ** 2 * np.var(self.x0[0, :])
+		self.y[0, :] = self.x0[0, :] + np.sqrt(self.R) * np.random.randn(self.ll)
+
+
+if __name__ == '__main__':
+	nature = FNNature(ll=800, dT=0.2, dt=0.02)
+	# plot the nature data and the observations
+
+	# define the model
+	Q_var0 = np.diag((nature.R, nature.R))
+	fn_model = FNModel(Q_var=Q_var0, R=nature.R)
+
+	# UKF instance
+	uk_filter = UKFVoss(model=fn_model)
+
+	x_hat0, Pxx0, Ks0, errors0 = uk_filter.filter(nature.y)
