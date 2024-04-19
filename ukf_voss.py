@@ -24,6 +24,7 @@ Voss's implementation of the unscented Kalman filter
 
 import numpy as np
 from scipy.linalg import sqrtm, block_diag
+from scipy.integrate import solve_ivp
 
 
 class UKFModel(object):
@@ -74,11 +75,16 @@ class UKFVoss(object):
 		self.ll = ll  # number of data samples
 		self.dT = dT  # sampling time step (global variable)
 		self.dt = dt  # local integration step
-		self.Q = block_diag(model.Q_par, model.Q_var)  # process noise covariance matrix
+		if type(model.Q_par) is float  or model.Q_par.size > 0:
+			self.Q = block_diag(model.Q_par, model.Q_var)  # process noise covariance matrix
+		else:
+			self.Q = model.Q_var
+
 		self.R = model.R
 		self.Pxx = None
 		self.Ks = None
 		self.x_hat = None
+		self.use_solveivp = True
 
 	def evolve_f(self, x):
 		"""
@@ -94,19 +100,32 @@ class UKFVoss(object):
 		dq = self.dq
 		dt = self.dt
 		fc = self.model.f_model
-		nn = int(np.fix(self.dT / dt))
+
 
 		p = x[:dq, :]
 		xnl = x[dq:, :]
 
+		if self.use_solveivp:
+
+			def ode_func(t, xa):
+				return fc(xa, p)
+
+			n_var, n_points = xnl.shape
+			xnl_out = np.zeros_like(xnl)
+			for i in range(n_points):
+				sol = solve_ivp(ode_func, (0, self.dT), xnl[:,i], vectorized=True)
+				xnl_out[:,i] = sol.y[:, -1]
+			xnl = xnl_out
 		# 4th order Runge-Kutta integrator with parameters (TODO use integrator function)
-		for i in range(nn):
-			# print(p)
-			k1 = dt * fc(xnl, p)
-			k2 = dt * fc(xnl + k1 / 2, p)
-			k3 = dt * fc(xnl + k2 / 2, p)
-			k4 = dt * fc(xnl + k3, p)
-			xnl = xnl + k1 / 6 + k2 / 3 + k3 / 3 + k4 / 6
+		else:
+			nn = int(np.fix(self.dT / dt))
+			for i in range(nn):
+				# print(p)
+				k1 = dt * fc(xnl, p)
+				k2 = dt * fc(xnl + k1 / 2, p)
+				k3 = dt * fc(xnl + k2 / 2, p)
+				k4 = dt * fc(xnl + k3, p)
+				xnl = xnl + k1 / 6 + k2 / 3 + k3 / 3 + k4 / 6
 
 		r = np.vstack([x[:dq, :], xnl])
 		return r
@@ -128,8 +147,9 @@ class UKFVoss(object):
 		fct = self.evolve_f
 		obsfct = self.model.obs_g_model
 		N = 2 * dx
-
-		xsigma = sqrtm(dx * Pxx).T  # Pxx = root * root', but Pxx = chol' * chol
+		Pxx = (Pxx + Pxx.T) / 2.
+		xsigma = np.real(sqrtm(dx * Pxx).T)  # Pxx = root * root', but Pxx = chol' * chol
+		xsigma = (xsigma + xsigma.T) / 2.
 		Xa = x_hat[:, np.newaxis] + np.hstack([xsigma, -xsigma])
 		X = fct(Xa)
 
@@ -153,7 +173,7 @@ class UKFVoss(object):
 		K = np.dot(Pxy, np.linalg.inv(Pyy))  # same as K = np.dot(Pxy, np.linalg.inv(Pyy))
 		x_hat = x_tilde + np.dot(K, (y - y_tilde))
 		Pxx = Pxx - np.dot(K, Pxy.T)
-
+		Pxx = (Pxx + Pxx.T) / 2.
 		return x_hat, Pxx, K
 
 	def filter(self, y, initial_condition=None):
@@ -347,6 +367,18 @@ class NatureSystem(object):
 	def system(self, x, p):
 		return np.array([])
 
+	def integrate_solveivp(self):
+		p = None
+
+		def ode_func(t, x):
+			return self.system(x, p)
+
+		for n in range(self.ll - 1):
+			p = self.p[:, n]
+			xx = self.x0[:, n]
+			sol = solve_ivp(ode_func, [0, self.dT], xx)
+			self.x0[:, n + 1] = sol.y[:,-1]
+
 	def integrateRK4(self):
 		"""
 		Integrates the system of ordinary differential equations using the fourth order Runge-Kutta method.
@@ -370,43 +402,26 @@ class NatureSystem(object):
 
 class FNNature(NatureSystem):
 	"""
-	Class FNNature
-	===============
+	The `FNNature` class represents a nature for the FitzHugh-Nagumo model.
+	It inherits from the `NatureSystem` class.
 
-	Class representing a nature system with FitzHugh-Nagumo equations.
+	Attributes:
+		a (float): Parameter 'a' for the FNNature model.
+		b (float): Parameter 'b' for the FNNature model.
+		c (float): Parameter 'c' for the FNNature model.
+		R0 (float): Initial value of R for the FNNature model.
+		R (float): Current value of R for the FNNature model.
+		x0 (ndarray): The state vector of the nature system.
+		y (ndarray): The observed states of the nature system.
+		p (ndarray): The set of parameters for the nature system.
 
-	Attributes
-	----------
-	ll : int
-	    Length of the system.
-	dT : float
-	    Duration of the simulation.
-	dt : float
-	    Time step for the simulation.
-	a : float
-	    Parameter 'a' in the FitzHugh-Nagumo equations.
-	b : float
-	    Parameter 'b' in the FitzHugh-Nagumo equations.
-	c : float
-	    Parameter 'c' in the FitzHugh-Nagumo equations.
-	R0 : float
-	    Initial value for the noise variance.
-	initial_condition : ndarray, optional
-	    Initial condition for the system.
-
-	Methods
-	-------
-	__init__(ll, dT, dt, a=0.7, b=0.8, c=3., R0=0.2, initial_condition=None)
-	    Initializes the FNNature object.
-	system(x, p)
-	    Returns the value of the system equations for given state and parameter arrays.
-	set_current()
-	    Sets the current value for the system.
-	observations()
-	    Calculates the observations based on the system's state and noise.
-
+	Methods:
+		system(self, x, p): Calculates the new state of the system based on the current state 'x' and
+							parameter 'p'.
+		set_current(self): Calculates and sets the current 'p' in the p array for each step.
+		observations(self): Generates the observations based on the current state and noise.
 	"""
-	def __init__(self, ll, dT, dt, a=0.7, b=0.8, c=3., R0=0.2, initial_condition=None):
+	def __init__(self, ll, dT, dt, a=0.7, b=0.8, c=3., R0=0.2, initial_condition: np.ndarray | None= None):
 		"""
 		Initialize the FNNature object.
 
