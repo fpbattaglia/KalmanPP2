@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Assignment5_Lorenz module &#8212; Kalman BMI 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b849a4e9" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css?v=87629129" />
+    <script src="_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Kalman BMI 0.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Assignment5_Lorenz module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-Assignment5_Lorenz">
+<span id="assignment5-lorenz-module"></span><h1>Assignment5_Lorenz module<a class="headerlink" href="#module-Assignment5_Lorenz" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="Assignment5_Lorenz.LorenzModelWithParameterTracking">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Assignment5_Lorenz.</span></span><span class="sig-name descname"><span class="pre">LorenzModelWithParameterTracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">46.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.666666</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_par</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.015</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([1.])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">track_sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">track_r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">track_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ukf_voss.html#ukf_voss.UKFModel" title="ukf_voss.UKFModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">UKFModel</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="Assignment5_Lorenz.LorenzModelWithParameterTracking.f_model">
+<span class="sig-name descname"><span class="pre">f_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking.f_model" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Assignment5_Lorenz.LorenzModelWithParameterTracking.n_observables">
+<span class="sig-name descname"><span class="pre">n_observables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking.n_observables" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the number of observables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Number of observables.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Assignment5_Lorenz.LorenzModelWithParameterTracking.n_params">
+<span class="sig-name descname"><span class="pre">n_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking.n_params" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Assignment5_Lorenz.LorenzModelWithParameterTracking.n_variables">
+<span class="sig-name descname"><span class="pre">n_variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking.n_variables" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the number of variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The number of variables defined in the method.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Assignment5_Lorenz.LorenzModelWithParameterTracking.obs_g_model">
+<span class="sig-name descname"><span class="pre">obs_g_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking.obs_g_model" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="Assignment5_Lorenz.LorenzNature">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Assignment5_Lorenz.</span></span><span class="sig-name descname"><span class="pre">LorenzNature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ll</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">46.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.666666</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Assignment5_Lorenz.LorenzNature" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ukf_voss.html#ukf_voss.NatureSystem" title="ukf_voss.NatureSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">NatureSystem</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="Assignment5_Lorenz.LorenzNature.observations">
+<span class="sig-name descname"><span class="pre">observations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Assignment5_Lorenz.LorenzNature.observations" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates the observations based on the system’s state and noise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Assignment5_Lorenz.LorenzNature.set_current">
+<span class="sig-name descname"><span class="pre">set_current</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Assignment5_Lorenz.LorenzNature.set_current" title="Link to this definition">¶</a></dt>
+<dd><p>Sets the current value in the self.p array.
+set to zero
+:return: None</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Assignment5_Lorenz.LorenzNature.system">
+<span class="sig-name descname"><span class="pre">system</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Assignment5_Lorenz.LorenzNature.system" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the Lorenz system based on the given parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – A list containing three values representing the state variables.</p></li>
+<li><p><strong>p</strong> – A list or array of parameters necessary for the system equations.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A numpy array containing the calculated system equations.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Assignment5_Lorenz module</a><ul>
+<li><a class="reference internal" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking"><code class="docutils literal notranslate"><span class="pre">LorenzModelWithParameterTracking</span></code></a><ul>
+<li><a class="reference internal" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking.f_model"><code class="docutils literal notranslate"><span class="pre">LorenzModelWithParameterTracking.f_model()</span></code></a></li>
+<li><a class="reference internal" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking.n_observables"><code class="docutils literal notranslate"><span class="pre">LorenzModelWithParameterTracking.n_observables()</span></code></a></li>
+<li><a class="reference internal" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking.n_params"><code class="docutils literal notranslate"><span class="pre">LorenzModelWithParameterTracking.n_params()</span></code></a></li>
+<li><a class="reference internal" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking.n_variables"><code class="docutils literal notranslate"><span class="pre">LorenzModelWithParameterTracking.n_variables()</span></code></a></li>
+<li><a class="reference internal" href="#Assignment5_Lorenz.LorenzModelWithParameterTracking.obs_g_model"><code class="docutils literal notranslate"><span class="pre">LorenzModelWithParameterTracking.obs_g_model()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#Assignment5_Lorenz.LorenzNature"><code class="docutils literal notranslate"><span class="pre">LorenzNature</span></code></a><ul>
+<li><a class="reference internal" href="#Assignment5_Lorenz.LorenzNature.observations"><code class="docutils literal notranslate"><span class="pre">LorenzNature.observations()</span></code></a></li>
+<li><a class="reference internal" href="#Assignment5_Lorenz.LorenzNature.set_current"><code class="docutils literal notranslate"><span class="pre">LorenzNature.set_current()</span></code></a></li>
+<li><a class="reference internal" href="#Assignment5_Lorenz.LorenzNature.system"><code class="docutils literal notranslate"><span class="pre">LorenzNature.system()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Assignment5_Lorenz.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Kalman BMI 0.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Assignment5_Lorenz module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, Francesco Battaglia.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>ukf_voss module &#8212; Kalman BMI 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b849a4e9" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css?v=87629129" />
+    <script src="_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Kalman BMI 0.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ukf_voss module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-ukf_voss">
+<span id="ukf-voss-module"></span><h1>ukf_voss module<a class="headerlink" href="#module-ukf_voss" title="Link to this heading">¶</a></h1>
+<p>Voss’s implementation of the unscented Kalman filter</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="ukf_voss.FNModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ukf_voss.</span></span><span class="sig-name descname"><span class="pre">FNModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_par</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.015</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([1.])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.FNModel" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#ukf_voss.UKFModel" title="ukf_voss.UKFModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">UKFModel</span></code></a></p>
+<p>The <cite>FNModel</cite> class is used to represent a FitzHugh-Nagumo model. It inherits from the <cite>UKFModel</cite> class.</p>
+<section id="methods">
+<h2>Methods:<a class="headerlink" href="#methods" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>__init__(self, a=0.7, b=0.8, c=3., Q_par=0.015, Q_var=np.array((1.,)), R=1.)</dt><dd><p>Initializes an instance of the <cite>FNModel</cite> class.</p>
+</dd>
+<dt>f_model(self, x, p)</dt><dd><p>Takes two parameters, <cite>x</cite> and <cite>p</cite>, which are arrays. It computes and returns a 2D array of values based on the given formulas.</p>
+</dd>
+<dt>obs_g_model(self, x)</dt><dd><p>Takes a 2D array representing the input data and returns a 1D array representing the observations (in this case the membrane potential variables).</p>
+</dd>
+<dt>n_params(self)</dt><dd><p>Returns the number of parameters.</p>
+</dd>
+<dt>n_variables(self)</dt><dd><p>Returns the number of variables.</p>
+</dd>
+<dt>n_observables(self)</dt><dd><p>Returns the number of observables.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.FNModel.f_model">
+<span class="sig-name descname"><span class="pre">f_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.FNModel.f_model" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – the input array</p></li>
+<li><p><strong>p</strong> – the input array</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a 2D array containing computed values based on the input arrays</p>
+</dd>
+</dl>
+<p>This method takes in two parameters, <cite>x</cite> and <cite>p</cite>, which are arrays. It computes and returns a 2D array of values based on the given formulas.</p>
+<p>The parameter <cite>x</cite> represents an input array.
+The parameter <cite>p</cite> represents an input array.</p>
+<p>The return value is a 2D array containing computed values based on the input arrays <cite>x</cite> and <cite>p</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.FNModel.n_observables">
+<span class="sig-name descname"><span class="pre">n_observables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.FNModel.n_observables" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the number of observables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Number of observables.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.FNModel.n_params">
+<span class="sig-name descname"><span class="pre">n_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.FNModel.n_params" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the number of parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The number of parameters.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.FNModel.n_variables">
+<span class="sig-name descname"><span class="pre">n_variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.FNModel.n_variables" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the number of variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The number of variables defined in the method.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.FNModel.obs_g_model">
+<span class="sig-name descname"><span class="pre">obs_g_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.FNModel.obs_g_model" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> – A 2-dimensional array representing the input data. The array should have shape (n, m), where n is the number of samples and m is the number of features.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 1-dimensional array representing the observations (in this case the membrane potential variables). The arra</p>
+</dd>
+</dl>
+<p>y will have shape (m,) where m is the number of features.</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ukf_voss.FNNature">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ukf_voss.</span></span><span class="sig-name descname"><span class="pre">FNNature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ll</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.FNNature" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#ukf_voss.NatureSystem" title="ukf_voss.NatureSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">NatureSystem</span></code></a></p>
+<p>The <cite>FNNature</cite> class represents a nature for the FitzHugh-Nagumo model.
+It inherits from the <cite>NatureSystem</cite> class.</p>
+<dl>
+<dt>Attributes:</dt><dd><p>a (float): Parameter ‘a’ for the FNNature model.
+b (float): Parameter ‘b’ for the FNNature model.
+c (float): Parameter ‘c’ for the FNNature model.
+R0 (float): Initial value of R for the FNNature model.
+R (float): Current value of R for the FNNature model.
+x0 (ndarray): The state vector of the nature system.
+y (ndarray): The observed states of the nature system.
+p (ndarray): The set of parameters for the nature system.</p>
+</dd>
+<dt>Methods:</dt><dd><dl class="simple">
+<dt>system(self, x, p): Calculates the new state of the system based on the current state ‘x’ and</dt><dd><p>parameter ‘p’.</p>
+</dd>
+</dl>
+<p>set_current(self): Calculates and sets the current ‘p’ in the p array for each step.
+observations(self): Generates the observations based on the current state and noise.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.FNNature.observations">
+<span class="sig-name descname"><span class="pre">observations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.FNNature.observations" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates the observations based on the system’s state and noise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.FNNature.set_current">
+<span class="sig-name descname"><span class="pre">set_current</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.FNNature.set_current" title="Link to this definition">¶</a></dt>
+<dd><p>Sets the current value in the self.p array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.FNNature.system">
+<span class="sig-name descname"><span class="pre">system</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.FNNature.system" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ukf_voss.NatureSystem">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ukf_voss.</span></span><span class="sig-name descname"><span class="pre">NatureSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ll</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_observations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.NatureSystem" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.NatureSystem.integrateRK4">
+<span class="sig-name descname"><span class="pre">integrateRK4</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.NatureSystem.integrateRK4" title="Link to this definition">¶</a></dt>
+<dd><p>Integrates the system of ordinary differential equations using the fourth order Runge-Kutta method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.NatureSystem.integrate_solveivp">
+<span class="sig-name descname"><span class="pre">integrate_solveivp</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.NatureSystem.integrate_solveivp" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.NatureSystem.observations">
+<span class="sig-name descname"><span class="pre">observations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.NatureSystem.observations" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.NatureSystem.system">
+<span class="sig-name descname"><span class="pre">system</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.NatureSystem.system" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ukf_voss.UKFModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ukf_voss.</span></span><span class="sig-name descname"><span class="pre">UKFModel</span></span><a class="headerlink" href="#ukf_voss.UKFModel" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A class representing a model for a  Unscented Kalman Filter.</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><p>Q_par (float): Initial value for parameter covariance.
+Q_var (float): Initial value for variable covariance.
+R (ndarray): Observation covariance.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.UKFModel.f_model">
+<span class="sig-name descname"><span class="pre">f_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFModel.f_model" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.UKFModel.n_observables">
+<span class="sig-name descname"><span class="pre">n_observables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFModel.n_observables" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.UKFModel.n_params">
+<span class="sig-name descname"><span class="pre">n_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFModel.n_params" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.UKFModel.n_variables">
+<span class="sig-name descname"><span class="pre">n_variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFModel.n_variables" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.UKFModel.obs_g_model">
+<span class="sig-name descname"><span class="pre">obs_g_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFModel.obs_g_model" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ukf_voss.UKFVoss">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ukf_voss.</span></span><span class="sig-name descname"><span class="pre">UKFVoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#ukf_voss.UKFModel" title="ukf_voss.UKFModel"><span class="pre">UKFModel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ll</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.02</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFVoss" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.UKFVoss.covariance_postprocessing">
+<span class="sig-name descname"><span class="pre">covariance_postprocessing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">P</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFVoss.covariance_postprocessing" title="Link to this definition">¶</a></dt>
+<dd><p>Perform post-processing on the covariance matrix P, to enable for example covariance inflation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>P</strong> – The original covariance matrix.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The processed covariance matrix P_out.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.UKFVoss.evolve_f">
+<span class="sig-name descname"><span class="pre">evolve_f</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFVoss.evolve_f" title="Link to this definition">¶</a></dt>
+<dd><p>Evolve the given system using a 4th order Runge-Kutta integrator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> – The initial state of the system. Contains in the first self.dq elements the parameters.</p>
+</dd>
+</dl>
+<p>Dynamical variables are the further elements   (numpy.ndarray)
+:return: The evolved state of the system. (numpy.ndarray)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.UKFVoss.filter">
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFVoss.filter" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> – The observed data, an array of shape (dy, ll), where dy is the number of observed variables and ll is the number of time steps.</p></li>
+<li><p><strong>initial_condition</strong> – The initial condition for the estimation, an array of shape (dx,), where dx is the number of state variables. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple containing the estimated state trajectory x_hat, the covariance matrix Pxx, the Kalman gains Ks, and the estimation errors. All of them are arrays of shape (dx, ll), where dx is the number of state variables and ll is the number of time steps.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.UKFVoss.stats">
+<span class="sig-name descname"><span class="pre">stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFVoss.stats" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
+<dd><p>This method calculates the square root of diagonal elements of a matrix and stores it in an array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A 2-dimensional NumPy array containing the computed square roots of diagonal elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ukf_voss.UKFVoss.unscented_transform">
+<span class="sig-name descname"><span class="pre">unscented_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Pxx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ukf_voss.UKFVoss.unscented_transform" title="Link to this definition">¶</a></dt>
+<dd><p>This method performs an unscented transform for a given set of parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_hat</strong> – Initial state estimate</p></li>
+<li><p><strong>Pxx</strong> – Covariance matrix of the state estimate</p></li>
+<li><p><strong>y</strong> – Measurement vector</p></li>
+<li><p><strong>R</strong> – Measurement noise covariance matrix</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated state estimate, updated covariance matrix, Kalman gain</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">ukf_voss module</a><ul>
+<li><a class="reference internal" href="#ukf_voss.FNModel"><code class="docutils literal notranslate"><span class="pre">FNModel</span></code></a><ul>
+<li><a class="reference internal" href="#ukf_voss.FNModel.f_model"><code class="docutils literal notranslate"><span class="pre">FNModel.f_model()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.FNModel.n_observables"><code class="docutils literal notranslate"><span class="pre">FNModel.n_observables()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.FNModel.n_params"><code class="docutils literal notranslate"><span class="pre">FNModel.n_params()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.FNModel.n_variables"><code class="docutils literal notranslate"><span class="pre">FNModel.n_variables()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.FNModel.obs_g_model"><code class="docutils literal notranslate"><span class="pre">FNModel.obs_g_model()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ukf_voss.FNNature"><code class="docutils literal notranslate"><span class="pre">FNNature</span></code></a><ul>
+<li><a class="reference internal" href="#ukf_voss.FNNature.observations"><code class="docutils literal notranslate"><span class="pre">FNNature.observations()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.FNNature.set_current"><code class="docutils literal notranslate"><span class="pre">FNNature.set_current()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.FNNature.system"><code class="docutils literal notranslate"><span class="pre">FNNature.system()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ukf_voss.NatureSystem"><code class="docutils literal notranslate"><span class="pre">NatureSystem</span></code></a><ul>
+<li><a class="reference internal" href="#ukf_voss.NatureSystem.integrateRK4"><code class="docutils literal notranslate"><span class="pre">NatureSystem.integrateRK4()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.NatureSystem.integrate_solveivp"><code class="docutils literal notranslate"><span class="pre">NatureSystem.integrate_solveivp()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.NatureSystem.observations"><code class="docutils literal notranslate"><span class="pre">NatureSystem.observations()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.NatureSystem.system"><code class="docutils literal notranslate"><span class="pre">NatureSystem.system()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ukf_voss.UKFModel"><code class="docutils literal notranslate"><span class="pre">UKFModel</span></code></a><ul>
+<li><a class="reference internal" href="#ukf_voss.UKFModel.f_model"><code class="docutils literal notranslate"><span class="pre">UKFModel.f_model()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.UKFModel.n_observables"><code class="docutils literal notranslate"><span class="pre">UKFModel.n_observables()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.UKFModel.n_params"><code class="docutils literal notranslate"><span class="pre">UKFModel.n_params()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.UKFModel.n_variables"><code class="docutils literal notranslate"><span class="pre">UKFModel.n_variables()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.UKFModel.obs_g_model"><code class="docutils literal notranslate"><span class="pre">UKFModel.obs_g_model()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ukf_voss.UKFVoss"><code class="docutils literal notranslate"><span class="pre">UKFVoss</span></code></a><ul>
+<li><a class="reference internal" href="#ukf_voss.UKFVoss.covariance_postprocessing"><code class="docutils literal notranslate"><span class="pre">UKFVoss.covariance_postprocessing()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.UKFVoss.evolve_f"><code class="docutils literal notranslate"><span class="pre">UKFVoss.evolve_f()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.UKFVoss.filter"><code class="docutils literal notranslate"><span class="pre">UKFVoss.filter()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.UKFVoss.stats"><code class="docutils literal notranslate"><span class="pre">UKFVoss.stats()</span></code></a></li>
+<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">UKFVoss.stats()</span></code></a></li>
+<li><a class="reference internal" href="#ukf_voss.UKFVoss.unscented_transform"><code class="docutils literal notranslate"><span class="pre">UKFVoss.unscented_transform()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/ukf_voss.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Kalman BMI 0.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ukf_voss module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, Francesco Battaglia.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    </div>
+  </body>
+</html>
