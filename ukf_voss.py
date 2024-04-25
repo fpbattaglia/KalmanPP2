@@ -75,7 +75,8 @@ class UKFVoss(object):
 		self.ll = ll  # number of data samples
 		self.dT = dT  # sampling time step (global variable)
 		self.dt = dt  # local integration step
-		if type(model.Q_par) is float  or model.Q_par.size > 0:
+		# noinspection PyUnresolvedReferences
+		if type(model.Q_par) is float or model.Q_par.size > 0:
 			self.Q = block_diag(model.Q_par, model.Q_var)  # process noise covariance matrix
 		else:
 			self.Q = model.Q_var
@@ -101,23 +102,24 @@ class UKFVoss(object):
 		dt = self.dt
 		fc = self.model.f_model
 
-
-		p = x[:dq, :]
+		pars = x[:dq, :]
 		xnl = x[dq:, :]
 
 		if self.use_solveivp:
 
-			def ode_func(t, xa):
+			def ode_func(t: np.ndarray, xa):
 				return fc(xa, p)
 
 			n_var, n_points = xnl.shape
 			xnl_out = np.zeros_like(xnl)
 			for i in range(n_points):
-				sol = solve_ivp(ode_func, (0, self.dT), xnl[:,i], vectorized=True)
-				xnl_out[:,i] = sol.y[:, -1]
+				p = pars[:, [i]]
+				sol = solve_ivp(ode_func, (0, self.dT), xnl[: ,i], vectorized=True)
+				xnl_out[:, i] = sol.y[:, -1]
 			xnl = xnl_out
-		# 4th order Runge-Kutta integrator with parameters (TODO use integrator function)
+		# 4th order Runge-Kutta integrator with parameters
 		else:
+			p = pars
 			nn = int(np.fix(self.dT / dt))
 			for i in range(nn):
 				# print(p)
@@ -377,7 +379,7 @@ class NatureSystem(object):
 			p = self.p[:, n]
 			xx = self.x0[:, n]
 			sol = solve_ivp(ode_func, [0, self.dT], xx)
-			self.x0[:, n + 1] = sol.y[:,-1]
+			self.x0[:, n + 1] = sol.y[:, -1]
 
 	def integrateRK4(self):
 		"""
@@ -421,7 +423,7 @@ class FNNature(NatureSystem):
 		set_current(self): Calculates and sets the current 'p' in the p array for each step.
 		observations(self): Generates the observations based on the current state and noise.
 	"""
-	def __init__(self, ll, dT, dt, a=0.7, b=0.8, c=3., R0=0.2, initial_condition: np.ndarray | None= None):
+	def __init__(self, ll, dT, dt, a=0.7, b=0.8, c=3., R0=0.2, initial_condition: np.ndarray | None = None):
 		"""
 		Initialize the FNNature object.
 
