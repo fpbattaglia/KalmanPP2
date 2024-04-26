@@ -22,9 +22,23 @@ Voss's implementation of the unscented Kalman filter
 # ported to Python FPB April 2024
 
 
+
 import numpy as np
-from scipy.linalg import sqrtm, block_diag
 from scipy.integrate import solve_ivp
+import tqdm
+
+use_jax = True
+if use_jax:
+	import jax
+	import jax.numpy as jnp
+	jax.config.update("jax_enable_x64", True)
+	from jax.scipy.linalg import sqrtm, block_diag
+	import diffrax
+	from functools import partial
+	np_here = jnp
+else:
+	from scipy.linalg import sqrtm, block_diag
+	np_here = np
 
 
 class UKFModel(object):
@@ -87,6 +101,40 @@ class UKFVoss(object):
 		self.x_hat = None
 		self.use_solveivp = True
 
+	def evolve_f_jax(self, x):
+		"""
+		Evolve the given system using a 4th order Runge-Kutta integrator.
+
+		:param x: The initial state of the system. Contains in the first self.dq elements the parameters.
+		Dynamical variables are the further elements   (numpy.ndarray)
+		:return: The evolved state of the system. (numpy.ndarray)
+
+		"""
+		# Model function F(x)
+
+		dq = self.dq
+		dt = self.dt
+		fc = self.model.f_model
+
+		pars = x[:dq, :]
+		xnl = x[dq:, :]
+
+		def ode_func(t: np.ndarray, xa, args):
+			return fc(xa, p)
+
+		term = diffrax.ODETerm(ode_func)
+		solver = diffrax.Dopri5()
+		n_var, n_points = xnl.shape
+		xnl_out = jnp.zeros_like(xnl)
+		for i in range(n_points):
+			p = pars[:, [i]]
+			sol = diffrax.diffeqsolve(term, solver, t0=0., t1=1., dt0=dt, y0=xnl[:, i], max_steps=None)
+			xnl_out = xnl_out.at[:, i].set(sol.ys[:, -1])
+		xnl = xnl_out
+
+		r = jnp.vstack([x[:dq, :], xnl])
+		return r
+
 	def evolve_f(self, x):
 		"""
 		Evolve the given system using a 4th order Runge-Kutta integrator.
@@ -114,7 +162,7 @@ class UKFVoss(object):
 			xnl_out = np.zeros_like(xnl)
 			for i in range(n_points):
 				p = pars[:, [i]]
-				sol = solve_ivp(ode_func, (0, self.dT), xnl[: ,i], vectorized=True)
+				sol = solve_ivp(ode_func, (0, self.dT), xnl[:, i], vectorized=True)
 				xnl_out[:, i] = sol.y[:, -1]
 			xnl = xnl_out
 		# 4th order Runge-Kutta integrator with parameters
@@ -131,6 +179,41 @@ class UKFVoss(object):
 
 		r = np.vstack([x[:dq, :], xnl])
 		return r
+
+	@partial(jax.jit, static_argnums=(0, 5, 6))
+	def unscented_transform_jax(self, x_hat, Pxx, y, R, fct, obsfct):
+		dx = self.dx
+		dy = self.dy
+
+		N = 2 * dx
+		Pxx = (Pxx + Pxx.T) / 2.
+		xsigma = jnp.real(sqrtm(dx * Pxx).T)  # Pxx = root * root', but Pxx = chol' * chol
+		xsigma = (xsigma + xsigma.T) / 2.
+		Xa = x_hat[:, jnp.newaxis] + jnp.hstack([xsigma, -xsigma])
+		X = fct(Xa)
+
+		x_tilde = jnp.mean(X, axis=1)  # same as x_tilde = np.sum(X, axis=1) / N
+
+		Pxx = jnp.zeros((dx, dx))
+		for i in jnp.arange(N):
+			Pxx += jnp.outer((X[:, i] - x_tilde), (X[:, i] - x_tilde)) / N
+
+		Y = jnp.atleast_2d(obsfct(X))
+
+		y_tilde = jnp.mean(Y, axis=1)
+		Pyy = R.copy()
+		for i in range(N):
+			Pyy += jnp.outer((Y[:, i] - y_tilde), (Y[:, i] - y_tilde)) / N
+
+		Pxy = np.zeros((dx, dy))
+		for i in range(N):
+			Pxy += jnp.outer((X[:, i] - x_tilde), (Y[:, i] - y_tilde)) / N
+
+		K = jnp.dot(Pxy, jnp.linalg.inv(Pyy))  # same as K = np.dot(Pxy, np.linalg.inv(Pyy))
+		x_hat = x_tilde + jnp.dot(K, (y - y_tilde))
+		Pxx = Pxx - jnp.dot(K, Pxy.T)
+		Pxx = (Pxx + Pxx.T) / 2.
+		return x_hat, Pxx, K
 
 	def unscented_transform(self, x_hat, Pxx, y, R):
 		"""
@@ -189,27 +272,54 @@ class UKFVoss(object):
 		dx = self.dx
 		dy = self.dy
 
-		x_hat = np.zeros((dx, ll))
-
-		if initial_condition is not None:
-			x_hat[:, 0] = initial_condition
+		if use_jax:
+			x_hat = jnp.zeros((dx, ll))
 		else:
-			x_hat[self.dq, 0] = y[0, 0]  # first guess of x_1 set to observation
+			x_hat = np.zeros((dx, ll))
 
-		Pxx = np.zeros((dx, dx, ll))
+		if use_jax:
+			if initial_condition is not None:
+				x_hat = x_hat.at[:, 0].set(initial_condition)
+			else:
+				x_hat = x_hat.at[self.dq, 0].set(y[0, 0])  # first guess of x_1 set to observation
+		else:
+			if initial_condition is not None:
+				x_hat[:, 0] = initial_condition
+			else:
+				x_hat[self.dq, 0] = y[0, 0]  # first guess of x_1 set to observation
 
-		Pxx[:, :, 0] = self.Q
+		if use_jax:
+			Pxx = jnp.zeros((dx, dx, ll))
+		else:
+			Pxx = np.zeros((dx, dx, ll))
+
+		Pxx = Pxx.at[:, :, 0].set(self.Q)
 
 		# Variables for the estimation
 		errors = np.zeros((dx, ll))
-		Ks = np.zeros((dx, dy, ll))  # Kalman gains
-
+		if use_jax:
+			Ks = jnp.zeros((dx, dy, ll))  # Kalman gains
+		else:
+			Ks = np.zeros((dx, dy, ll))  # Kalman gains
 		# Main loop for recursive estimation
-		for k in range(1, ll):
-			x_hat[:, k], Pxx[:, :, k], Ks[:, :, k] = self.unscented_transform(x_hat[:, k - 1], Pxx[:, :, k - 1], y[:, k], self.R)
+		for k in tqdm.tqdm(range(1, ll)):
+			if use_jax:
+				fct = self.evolve_f_jax
+				obsfct = self.model.obs_g_model
+				x_hat0, Pxx0, Ks0 = self.unscented_transform_jax(x_hat[:, k - 1], Pxx[:, :, k - 1],
+																				  y[:, k], self.R, fct, obsfct)
+				x_hat = x_hat.at[:, k].set(x_hat0)
+				Pxx = Pxx.at[:, :, k].set(Pxx0)
+				Ks = Ks.at[:, :, k].set(Ks0)
+			else:
+				x_hat[:, k], Pxx[:, :, k], Ks[:, :, k] = self.unscented_transform(x_hat[:, k - 1], Pxx[:, :, k - 1], y[:, k], self.R)
 			# Pxx[0, 0, k] = self.model.Q_par
-			Pxx[:, :, k] = self.covariance_postprocessing(Pxx[:, :, k])
+			if use_jax:
+				Pxx = Pxx.at[:, :, k].set(self.covariance_postprocessing(Pxx[:, :, k]))
+			else:
+				Pxx[:, :, k] = self.covariance_postprocessing(Pxx[:, :, k])
 			errors[:, k] = np.sqrt(np.diag(Pxx[:, :, k]))
+
 
 		self.Pxx = Pxx
 		self.Ks = Ks
@@ -224,7 +334,10 @@ class UKFVoss(object):
 		:return: The processed covariance matrix P_out.
 		"""
 		P_out = P.copy()
-		P_out[:self.dq, :self.dq] = self.model.Q_par
+		if use_jax:
+			P_out = P_out.at[:self.dq, :self.dq].set(self.model.Q_par)
+		else:
+			P_out[:self.dq, :self.dq] = self.model.Q_par
 		return P_out
 
 # Results
@@ -300,13 +413,19 @@ class FNModel(UKFModel):
 		The return value is a 2D array containing computed values based on the input arrays `x` and `p`.
 		"""
 		a, b, c = self.a, self.b, self.c
+		if use_jax:
+			np_here = jnp
+		else:
+			np_here = np
+
+
 		# p = p.ravel()
-		x = np.atleast_2d(x)
+		x = np_here.atleast_2d(x)
 		# return np.array([c * (x[1,:] + x[0,:] - x[0,:]**3 / 3 + p), -(x[0,:] - a + b * x[1,:]) / c])
-		rr = [np.atleast_2d(c * (x[1, :] + x[0, :] - x[0, :] ** 3 / 3 + p[0, :])),
-			  np.atleast_2d(-(x[0, :] - a + b * x[1, :]) / c)]
+		rr = [np_here.atleast_2d(c * (x[1, :] + x[0, :] - x[0, :] ** 3 / 3 + p[0, :])),
+			  np_here.atleast_2d(-(x[0, :] - a + b * x[1, :]) / c)]
 		# print(rr)
-		return np.vstack(rr)
+		return np_here.vstack(rr)
 
 	def obs_g_model(self, x):
 		"""
@@ -360,14 +479,30 @@ class NatureSystem(object):
 		self.dT = dT
 		self.dt = dt
 		self.ll = ll
-		self.x0 = np.zeros((n_variables, ll))
-		self.y = np.zeros((n_observations, ll))
-		self.p = np.zeros((n_params, ll))
+		self.x0 = np_here.zeros((n_variables, ll))
+		self.y = np_here.zeros((n_observations, ll))
+		self.p = np_here.zeros((n_params, ll))
 		if initial_condition is not None:
-			self.x0[:, 0] = initial_condition
+			if use_jax:
+				self.x0 = self.x0.at[:, 0].set(initial_condition)
+			else:
+				self.x0[:, 0] = initial_condition
 
 	def system(self, x, p):
 		return np.array([])
+
+
+	def integrate_diffrax(self):
+		def ode_func(t, x, p):
+			return self.system(x, p)
+
+		term = diffrax.ODETerm(ode_func)
+		solver = diffrax.Tsit5()
+		for n in range(self.ll - 1):
+			p = self.p[:, n]
+			xx = self.x0[:, n]
+			sol = diffrax.diffeqsolve(term, solver, t0=0, t1=self.dT, dt0=self.dt, y0=xx, args=p)
+			self.x0 = self.x0.at[:, n + 1].set(sol.ys[0, :])
 
 	def integrate_solveivp(self):
 		p = None
@@ -474,7 +609,7 @@ class FNNature(NatureSystem):
 
 
 if __name__ == '__main__':
-	nature = FNNature(ll=800, dT=0.2, dt=0.02)
+	nature = FNNature(ll=80, dT=0.2, dt=0.02)
 	# plot the nature data and the observations
 
 	# define the model
