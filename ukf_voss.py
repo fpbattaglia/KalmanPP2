@@ -27,12 +27,13 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import tqdm
 
-use_jax = False
+use_jax = True
 if use_jax:
 	from jax import jit
 	import jax
 	import jax.numpy as jnp
 	jax.config.update("jax_enable_x64", True)
+	from functools import partial
 	from jax.scipy.linalg import sqrtm, block_diag
 	import diffrax
 
@@ -121,6 +122,7 @@ class UKFVoss(object):
 
 		dq = self.dq
 		dt = self.dt
+		dT = self.dT
 		fc = self.model.f_model
 
 		pars = x[:dq, :]
@@ -136,8 +138,10 @@ class UKFVoss(object):
 		xnl_out = jnp.zeros_like(xnl)
 		for i in range(n_points):
 			p = pars[:, [i]]
-			sol = diffrax.diffeqsolve(term, solver, t0=0., t1=1., dt0=dt, y0=xnl[:, i], max_steps=None)
-			xnl_out = xnl_out.at[:, i].set(sol.ys[:, -1])
+			sol = diffrax.diffeqsolve(term, solver, t0=0., t1=dT, dt0=dt, y0=xnl[:, i], max_steps=None)
+			#xnl_out = xnl_out.at[:, i].set(sol.ys[:, -1])
+			xnl_out = xnl_out.at[:, i].set(sol.ys.ravel())
+
 		xnl = xnl_out
 
 		r = jnp.vstack([x[:dq, :], xnl])
@@ -422,10 +426,6 @@ class FNModel(UKFModel):
 		The return value is a 2D array containing computed values based on the input arrays `x` and `p`.
 		"""
 		a, b, c = self.a, self.b, self.c
-		if use_jax:
-			np_here = jnp
-		else:
-			np_here = np
 
 
 		# p = p.ravel()
