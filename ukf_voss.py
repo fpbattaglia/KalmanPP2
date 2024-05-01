@@ -27,18 +27,25 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import tqdm
 
-use_jax = True
+use_jax = False
 if use_jax:
+	from jax import jit
 	import jax
 	import jax.numpy as jnp
 	jax.config.update("jax_enable_x64", True)
 	from jax.scipy.linalg import sqrtm, block_diag
 	import diffrax
-	from functools import partial
+
 	np_here = jnp
 else:
 	from scipy.linalg import sqrtm, block_diag
 	np_here = np
+
+	def partial(func, static_argnums=None):
+		return func
+
+	def jit(func):
+		return func
 
 
 class UKFModel(object):
@@ -122,6 +129,7 @@ class UKFVoss(object):
 		def ode_func(t: np.ndarray, xa, args):
 			return fc(xa, p)
 
+		# noinspection PyArgumentList
 		term = diffrax.ODETerm(ode_func)
 		solver = diffrax.Dopri5()
 		n_var, n_points = xnl.shape
@@ -180,7 +188,7 @@ class UKFVoss(object):
 		r = np.vstack([x[:dq, :], xnl])
 		return r
 
-	@partial(jax.jit, static_argnums=(0, 5, 6))
+	@partial(jit, static_argnums=(0, 5, 6))
 	def unscented_transform_jax(self, x_hat, Pxx, y, R, fct, obsfct):
 		dx = self.dx
 		dy = self.dy
@@ -290,10 +298,11 @@ class UKFVoss(object):
 
 		if use_jax:
 			Pxx = jnp.zeros((dx, dx, ll))
+			Pxx = Pxx.at[:, :, 0].set(self.Q)
 		else:
 			Pxx = np.zeros((dx, dx, ll))
+			Pxx[:, :, 0] = self.Q
 
-		Pxx = Pxx.at[:, :, 0].set(self.Q)
 
 		# Variables for the estimation
 		errors = np.zeros((dx, ll))
@@ -491,18 +500,29 @@ class NatureSystem(object):
 	def system(self, x, p):
 		return np.array([])
 
-
-	def integrate_diffrax(self):
+	@partial(jit, static_argnums=(0, 1))
+	def integrate_diffrax_impl(self, n_steps, dT, dt, initial_condition, params):
 		def ode_func(t, x, p):
 			return self.system(x, p)
 
+		# noinspection PyArgumentList
 		term = diffrax.ODETerm(ode_func)
 		solver = diffrax.Tsit5()
-		for n in range(self.ll - 1):
-			p = self.p[:, n]
-			xx = self.x0[:, n]
-			sol = diffrax.diffeqsolve(term, solver, t0=0, t1=self.dT, dt0=self.dt, y0=xx, args=p)
-			self.x0 = self.x0.at[:, n + 1].set(sol.ys[0, :])
+		steps = jnp.linspace(0., n_steps*dT, n_steps)
+		saveat = diffrax.SaveAt(ts=steps)
+		sol = diffrax.diffeqsolve(term, solver, t0=0, t1=(self.ll*self.dT), saveat=saveat, dt0=dt,
+								  max_steps=None, y0=initial_condition, args=params)
+		return jnp.array(sol.ys).T
+	def integrate_diffrax(self):
+		# TODO allow for time-varying parameters (forcing terms)
+		x = self.integrate_diffrax_impl(n_steps=self.ll, dT=self.dT, dt=self.dt, initial_condition=self.x0[:, 0],
+									params= self.p[:, 0])
+		self.x0 = x
+		# for n in range(self.ll - 1):
+		# 	p = self.p[:, n]
+		# 	xx = self.x0[:, n]
+		# 	sol = diffrax.diffeqsolve(term, solver, t0=0, t1=self.dT, dt0=self.dt, y0=xx, args=p)
+		# 	self.x0 = self.x0.at[:, n + 1].set(sol.ys[0, :])
 
 	def integrate_solveivp(self):
 		p = None
