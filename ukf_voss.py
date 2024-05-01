@@ -136,9 +136,11 @@ class UKFVoss(object):
 		solver = diffrax.Dopri5()
 		n_var, n_points = xnl.shape
 		xnl_out = jnp.zeros_like(xnl)
+		stepsize_controller = diffrax.PIDController(rtol=1e-7, atol=1e-6)
 		for i in range(n_points):
 			p = pars[:, [i]]
-			sol = diffrax.diffeqsolve(term, solver, t0=0., t1=dT, dt0=dt, y0=xnl[:, i], max_steps=None)
+			sol = diffrax.diffeqsolve(term, solver, t0=0., t1=dT, dt0=dt, y0=xnl[:, i], max_steps=None,
+									  stepsize_controller=stepsize_controller)
 			#xnl_out = xnl_out.at[:, i].set(sol.ys[:, -1])
 			xnl_out = xnl_out.at[:, i].set(sol.ys.ravel())
 
@@ -510,8 +512,11 @@ class NatureSystem(object):
 		solver = diffrax.Tsit5()
 		steps = jnp.linspace(0., n_steps*dT, n_steps)
 		saveat = diffrax.SaveAt(ts=steps)
+		stepsize_controller = diffrax.PIDController(rtol=1e-7, atol=1e-6)
+
 		sol = diffrax.diffeqsolve(term, solver, t0=0, t1=(self.ll*self.dT), saveat=saveat, dt0=dt,
-								  max_steps=None, y0=initial_condition, args=params)
+								  max_steps=None, y0=initial_condition, args=params,
+								  stepsize_controller=stepsize_controller)
 		return jnp.array(sol.ys).T
 	def integrate_diffrax(self):
 		# TODO allow for time-varying parameters (forcing terms)
