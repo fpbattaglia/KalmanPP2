@@ -25,7 +25,7 @@ Voss's implementation of the unscented Kalman filter
 import numpy as np
 from scipy.linalg import sqrtm, block_diag
 from scipy.integrate import solve_ivp
-
+import tqdm
 
 class UKFModel(object):
 	"""A class representing a model for a  Unscented Kalman Filter.
@@ -178,7 +178,7 @@ class UKFVoss(object):
 		Pxx = (Pxx + Pxx.T) / 2.
 		return x_hat, Pxx, K
 
-	def filter(self, y, initial_condition=None):
+	def filter(self, y, initial_condition=None, disable_progress=False):
 		"""
 		:param y: The observed data, an array of shape (dy, ll), where dy is the number of observed variables and ll is the number of time steps.
 		:param initial_condition: The initial condition for the estimation, an array of shape (dx,), where dx is the number of state variables. Defaults to None.
@@ -205,7 +205,7 @@ class UKFVoss(object):
 		Ks = np.zeros((dx, dy, ll))  # Kalman gains
 
 		# Main loop for recursive estimation
-		for k in range(1, ll):
+		for k in tqdm.tqdm(range(1, ll), disable=disable_progress):
 			x_hat[:, k], Pxx[:, :, k], Ks[:, :, k] = self.unscented_transform(x_hat[:, k - 1], Pxx[:, :, k - 1], y[:, k], self.R)
 			# Pxx[0, 0, k] = self.model.Q_par
 			Pxx[:, :, k] = self.covariance_postprocessing(Pxx[:, :, k])
@@ -228,18 +228,26 @@ class UKFVoss(object):
 		return P_out
 
 # Results
-	def stats(self):
+	def stats(self, x=None):
 		"""
-		.. method:: stats(self)
+		Calculates the statistical errors and chi-squared value.
 
-		    This method calculates the square root of diagonal elements of a matrix and stores it in an array.
+		Args:
+		    x (optional): The true values. If provided, the chi-squared value will be calculated using the predicted values and the true values.
 
-		    :return: A 2-dimensional NumPy array containing the computed square roots of diagonal elements.
+		Returns:
+		    errors: A numpy array of shape (dx, ll) containing the statistical errors for each parameter at each time step.
+		    chisq: The chi-squared value if `x` is provided, None otherwise.
 		"""
 		errors = np.zeros((self.dx, self.ll))
 		for k in range(self.ll):
 			errors[:, k] = np.sqrt(np.diag(self.Pxx[:, :, k]))
+		if x is not None:
+			chisq = np.mean((x-self.x_hat) **2, axis=(0,1))
+		else:
+			chisq = None
 
+		return errors, chisq
 
 class FNModel(UKFModel):
 	"""
