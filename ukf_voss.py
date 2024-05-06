@@ -36,7 +36,7 @@ if use_jax:
 	from functools import partial
 	from jax.scipy.linalg import sqrtm, block_diag
 	import diffrax
-
+	import scipy # TODO only for debug purposes
 	np_here = jnp
 else:
 	from scipy.linalg import sqrtm, block_diag
@@ -109,6 +109,7 @@ class UKFVoss(object):
 		self.x_hat = None
 		self.use_solveivp = True
 
+	@partial(jax.jit, static_argnums=0)
 	def evolve_f_jax(self, x):
 		"""
 		Evolve the given system using a 4th order Runge-Kutta integrator.
@@ -129,18 +130,19 @@ class UKFVoss(object):
 		xnl = x[dq:, :]
 
 		def ode_func(t: np.ndarray, xa, args):
-			return fc(xa, p)
+			return fc(xa, args)
 
 		# noinspection PyArgumentList
 		term = diffrax.ODETerm(ode_func)
 		solver = diffrax.Dopri5()
 		n_var, n_points = xnl.shape
 		xnl_out = jnp.zeros_like(xnl)
-		stepsize_controller = diffrax.PIDController(rtol=1e-7, atol=1e-6)
+		stepsize_controller = diffrax.PIDController(rtol=1e-6, atol=1e-5)
 		for i in range(n_points):
 			p = pars[:, [i]]
+			# jax.debug.print("in evolve_f_jax, sigma is {sigma}", sigma=p[0])
 			sol = diffrax.diffeqsolve(term, solver, t0=0., t1=dT, dt0=dt, y0=xnl[:, i], max_steps=None,
-									  stepsize_controller=stepsize_controller)
+									  stepsize_controller=stepsize_controller, args=p)
 			#xnl_out = xnl_out.at[:, i].set(sol.ys[:, -1])
 			xnl_out = xnl_out.at[:, i].set(sol.ys.ravel())
 
@@ -219,7 +221,7 @@ class UKFVoss(object):
 		for i in range(N):
 			Pyy += jnp.outer((Y[:, i] - y_tilde), (Y[:, i] - y_tilde)) / N
 
-		Pxy = np.zeros((dx, dy))
+		Pxy = jnp.zeros((dx, dy))
 		for i in range(N):
 			Pxy += jnp.outer((X[:, i] - x_tilde), (Y[:, i] - y_tilde)) / N
 
