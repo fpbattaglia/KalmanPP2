@@ -48,14 +48,16 @@ if use_jax_sqrtm:
 			y = y_now
 			z = z_now
 		return y * jnp.sqrt(normalization)
+
 	@jax.jit
 	def sqrtm_newton_schulz_jax_loop(a):
 
+		# noinspection PyShadowingNames,PyUnusedLocal
 		def body_fun(i, pars):
 			y, z = pars
 			y_now = 0.5 * y @ (3. * identity - z @ y)
 			z_now = 0.5 * (3. * identity - z @ y) @ z
-			return (y_now, z_now)
+			return y_now, z_now
 
 		k = 10
 		normalization = jnp.trace(a)
@@ -70,6 +72,7 @@ if use_jax_sqrtm:
 		return np.array(sqrtm_newton_schulz_jax(aj), dtype=np.float64)
 else:
 	from scipy.linalg import sqrtm
+
 
 class UKFModel(object):
 	"""A class representing a model for a  Unscented Kalman Filter.
@@ -151,6 +154,7 @@ class UKFVoss(object):
 
 		if self.use_solveivp:
 
+			# noinspection PyUnusedLocal
 			def ode_func(t: np.ndarray, xa):
 				return fc(xa, p)
 
@@ -158,7 +162,7 @@ class UKFVoss(object):
 			xnl_out = np.zeros_like(xnl)
 			for i in range(n_points):
 				p = pars[:, [i]]
-				sol = solve_ivp(ode_func, (0, self.dT), xnl[: ,i], vectorized=True)
+				sol = solve_ivp(ode_func, (0, self.dT), xnl[:, i], vectorized=True)
 				xnl_out[:, i] = sol.y[:, -1]
 			xnl = xnl_out
 		# 4th order Runge-Kutta integrator with parameters
@@ -224,10 +228,14 @@ class UKFVoss(object):
 
 	def filter(self, y, initial_condition=None, disable_progress=False):
 		"""
-		:param y: The observed data, an array of shape (dy, ll), where dy is the number of observed variables and ll is the number of time steps.
-		:param initial_condition: The initial condition for the estimation, an array of shape (dx,), where dx is the number of state variables. Defaults to None.
-		:return: Tuple containing the estimated state trajectory x_hat, the covariance matrix Pxx, the Kalman gains Ks, and the estimation errors. All of them are arrays of shape (dx, ll), where dx is the number of state variables and ll is the number of time steps.
-
+		:param y: The observed data matrix with shape (dy, ll).
+		:param initial_condition: The initial condition for x_hat. If None, first guess of x_1 will be set to the first
+		observation in y. Default is None.
+		:param disable_progress: Flag indicating whether to disable the progress bar. If True, progress bar will not be shown.
+		Default is False.
+		:return: A tuple containing the estimated state matrix x_hat with shape (dx, ll), the covariance matrix Pxx
+		with shape (dx, dx, ll), the Kalman gain matrix Ks with shape (dx, dy, ll), and the error matrix errors
+		with shape (dx, ll).
 		"""
 		ll = self.ll
 		dx = self.dx
@@ -277,7 +285,8 @@ class UKFVoss(object):
 		Calculates the statistical errors and chi-squared value.
 
 		Args:
-		    x (optional): The true values. If provided, the chi-squared value will be calculated using the predicted values and the true values.
+		    x (optional): The true values. If provided, the chi-squared value will be calculated using
+		    the predicted values and the true values.
 
 		Returns:
 		    errors: A numpy array of shape (dx, ll) containing the statistical errors for each parameter at each time step.
@@ -287,36 +296,23 @@ class UKFVoss(object):
 		for k in range(self.ll):
 			errors[:, k] = np.sqrt(np.diag(self.Pxx[:, :, k]))
 		if x is not None:
-			chisq = np.mean((x-self.x_hat) **2, axis=(0,1))
+			chisq = np.mean((x-self.x_hat) ** 2, axis=(0, 1))
 		else:
 			chisq = None
 
 		return errors, chisq
 
+
 class FNModel(UKFModel):
 	"""
-	The `FNModel` class is used to represent a FitzHugh-Nagumo model. It inherits from the `UKFModel` class.
+	Represents a FitzHugh-Nagumo Model.
 
-	Methods:
-	---------
-
-	__init__(self, a=0.7, b=0.8, c=3., Q_par=0.015, Q_var=np.array((1.,)), R=1.)
-		Initializes an instance of the `FNModel` class.
-
-	f_model(self, x, p)
-		Takes two parameters, `x` and `p`, which are arrays. It computes and returns a 2D array of values based on the given formulas.
-
-	obs_g_model(self, x)
-		Takes a 2D array representing the input data and returns a 1D array representing the observations (in this case the membrane potential variables).
-
-	n_params(self)
-		Returns the number of parameters.
-
-	n_variables(self)
-		Returns the number of variables.
-
-	n_observables(self)
-		Returns the number of observables.
+	:param a: A float representing the value of parameter a (default 0.7).
+	:param b: A float representing the value of parameter b (default 0.8).
+	:param c: A float representing the value of parameter c (default 3.0).
+	:param Q_par: A float representing the initial value for parameter covariance (default 0.015).
+	:param Q_var: A numpy array representing the initial value for variable covariance (default np.array((1.,))).
+	:param R: A float representing the observation covariance (default 1.0).
 	"""
 	def __init__(self, a=0.7, b=0.8, c=3., Q_par=0.015, Q_var=np.array((1.,)), R=1.):
 		"""
@@ -344,7 +340,8 @@ class FNModel(UKFModel):
 		:param p: the input array
 		:return: a 2D array containing computed values based on the input arrays
 
-		This method takes in two parameters, `x` and `p`, which are arrays. It computes and returns a 2D array of values based on the given formulas.
+		This method takes in two parameters, `x` and `p`, which are arrays. It computes and returns a 2D array of values
+		based on the given formulas.
 
 		The parameter `x` represents an input array.
 		The parameter `p` represents an input array.
@@ -362,8 +359,10 @@ class FNModel(UKFModel):
 
 	def obs_g_model(self, x):
 		"""
-		:param x: A 2-dimensional array representing the input data. The array should have shape (n, m), where n is the number of samples and m is the number of features.
-		:return: A 1-dimensional array representing the observations (in this case the membrane potential variables). The array will have shape (m,) where m is the number of features.
+		:param x: A 2-dimensional array representing the input data. The array should have shape (n, m),
+		where n is the number of samples and m is the number of features.
+		:return: A 1-dimensional array representing the observations (in this case the membrane potential variables).
+		The array will have shape (m,) where m is the number of features.
 		"""
 		return x[1, :]
 
@@ -424,6 +423,7 @@ class NatureSystem(object):
 	def integrate_solveivp(self):
 		p = None
 
+		# noinspection PyUnusedLocal
 		def ode_func(t, x):
 			return self.system(x, p)
 
