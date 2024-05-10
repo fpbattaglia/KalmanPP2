@@ -111,6 +111,8 @@ class UKFControllableModel(UKFModel):
 	def set_control(self, control):
 		self.control = control
 
+	def f_model(self, x, p, ctrl=None):
+		return np.array([])
 
 class UKFVoss(object):
 	def __init__(self, model: UKFModel, ll=800, dT=0.2, dt=0.02):
@@ -165,14 +167,21 @@ class UKFVoss(object):
 		if self.use_solveivp:
 
 			# noinspection PyUnusedLocal
-			def ode_func(t: np.ndarray, xa):
-				return fc(xa, p)
+			def ode_func(t: np.ndarray, xa, p, ctrl=None):
+				if ctrl is not None:
+					return self.model.f_model(xa, p, ctrl)
+				else:
+					return self.model.f_model(xa, p)
 
 			n_var, n_points = xnl.shape
 			xnl_out = np.zeros_like(xnl)
 			for i in range(n_points):
 				p = pars[:, [i]]
-				sol = solve_ivp(ode_func, (0, self.dT), xnl[:, i], vectorized=True)
+				args = (p,)
+				if self.model is UKFControllableModel:
+					ctrl = self.model.control[:, np.newaxis]
+					args = (p, ctrl)
+				sol = solve_ivp(ode_func, (0, self.dT), xnl[:, i], vectorized=True, args=args)
 				xnl_out[:, i] = sol.y[:, -1]
 			xnl = xnl_out
 		# 4th order Runge-Kutta integrator with parameters
@@ -204,14 +213,12 @@ class UKFVoss(object):
 		dx = self.dx
 		dy = self.dy
 
-		fct = self.evolve_f
-		obsfct = self.model.obs_g_model
 		N = 2 * dx
 		Pxx = (Pxx + Pxx.T) / 2.
 		xsigma = np.real(sqrtm(dx * Pxx).T)  # Pxx = root * root', but Pxx = chol' * chol
 		xsigma = (xsigma + xsigma.T) / 2.
 		Xa = x_hat[:, np.newaxis] + np.hstack([xsigma, -xsigma])
-		X = fct(Xa)
+		X = self.evolve_f(Xa)
 
 		x_tilde = np.mean(X, axis=1)  # same as x_tilde = np.sum(X, axis=1) / N
 
@@ -219,7 +226,7 @@ class UKFVoss(object):
 		for i in range(N):
 			Pxx += np.outer((X[:, i] - x_tilde), (X[:, i] - x_tilde)) / N
 
-		Y = np.atleast_2d(obsfct(X))
+		Y = np.atleast_2d(self.model.obs_g_model(X))
 
 		y_tilde = np.mean(Y, axis=1)
 		Pyy = R.copy()
@@ -251,7 +258,7 @@ class UKFVoss(object):
 
 		ll = self.ll
 		if run_until is None:
-			run_until = self.ll
+			run_until = self.ll - 1
 		dx = self.dx
 		dy = self.dy
 
@@ -271,7 +278,7 @@ class UKFVoss(object):
 		Ks = np.zeros((dx, dy, ll))  # Kalman gains
 
 		# Main loop for recursive estimation
-		for k in tqdm.tqdm(range(self.current_time, run_until), disable=disable_progress):
+		for k in tqdm.tqdm(range(self.current_time, run_until+1), disable=disable_progress):
 			x_hat[:, k], Pxx[:, :, k], Ks[:, :, k] = self.unscented_transform(x_hat[:, k - 1], Pxx[:, :, k - 1], y[:, k], self.R)
 			# Pxx[0, 0, k] = self.model.Q_par
 			Pxx[:, :, k] = self.covariance_postprocessing(Pxx[:, :, k])
@@ -443,16 +450,21 @@ class NatureSystem(object):
 			run_until = self.ll
 
 		# noinspection PyUnusedLocal
-		def ode_func(t, x):
-			return self.system(x, p)
+		def ode_func(t, x, args):
+			return self.system(x, *args)
 
-		for n in range(self.current_time, run_until - 1):
-			p = self.p[:, n]
+		for n in range(self.current_time, run_until):
+			args = self.get_system_args(n)
 			xx = self.x0[:, n]
-			sol = solve_ivp(ode_func, [0, self.dT], xx)
+			sol = solve_ivp(ode_func, [0, self.dT], xx, args=args)
 			self.x0[:, n + 1] = sol.y[:, -1]
 		self.observations(self.current_time, run_until)
-		self.current_time = run_until - 1
+		self.current_time = run_until
+
+	def get_system_args(self, n):
+		p = self.p[:, n]
+		args = ((p,),)
+		return args
 
 	def integrateRK4(self, run_until=None):
 		"""
@@ -487,11 +499,16 @@ class ControllableNatureSystem(NatureSystem):
 		self.control = control
 		self.run_until = run_until
 
-	def system(self, x, p):
+	def system(self, x, p, control):
 		pass
 
 	def set_control(self, control):
 		self.control = control
+
+	def get_system_args(self, n):
+		p = self.p[:, n]
+		args = ((p, self.control),)
+		return args
 
 
 class FNNature(NatureSystem):
