@@ -103,6 +103,15 @@ class UKFModel(object):
 		return 0
 
 
+class UKFControllableModel(UKFModel):
+	def __init__(self):
+		super(UKFControllableModel, self).__init__()
+		self.control = None
+
+	def set_control(self, control):
+		self.control = control
+
+
 class UKFVoss(object):
 	def __init__(self, model: UKFModel, ll=800, dT=0.2, dt=0.02):
 		"""
@@ -132,6 +141,7 @@ class UKFVoss(object):
 		self.Pxx = None
 		self.Ks = None
 		self.x_hat = None
+		self.current_time = 1
 		self.use_solveivp = True
 
 	def evolve_f(self, x):
@@ -226,18 +236,22 @@ class UKFVoss(object):
 		Pxx = (Pxx + Pxx.T) / 2.
 		return x_hat, Pxx, K
 
-	def filter(self, y, initial_condition=None, disable_progress=False):
+	def filter(self, y, initial_condition=None, disable_progress=False, run_until=None):
 		"""
 		:param y: The observed data matrix with shape (dy, ll).
 		:param initial_condition: The initial condition for x_hat. If None, first guess of x_1 will be set to the first
 		observation in y. Default is None.
 		:param disable_progress: Flag indicating whether to disable the progress bar. If True, progress bar will not be shown.
 		Default is False.
+		:param run_until: Run the filter until this time.
 		:return: A tuple containing the estimated state matrix x_hat with shape (dx, ll), the covariance matrix Pxx
 		with shape (dx, dx, ll), the Kalman gain matrix Ks with shape (dx, dy, ll), and the error matrix errors
 		with shape (dx, ll).
 		"""
+
 		ll = self.ll
+		if run_until is None:
+			run_until = self.ll
 		dx = self.dx
 		dy = self.dy
 
@@ -257,11 +271,13 @@ class UKFVoss(object):
 		Ks = np.zeros((dx, dy, ll))  # Kalman gains
 
 		# Main loop for recursive estimation
-		for k in tqdm.tqdm(range(1, ll), disable=disable_progress):
+		for k in tqdm.tqdm(range(self.current_time, run_until), disable=disable_progress):
 			x_hat[:, k], Pxx[:, :, k], Ks[:, :, k] = self.unscented_transform(x_hat[:, k - 1], Pxx[:, :, k - 1], y[:, k], self.R)
 			# Pxx[0, 0, k] = self.model.Q_par
 			Pxx[:, :, k] = self.covariance_postprocessing(Pxx[:, :, k])
 			errors[:, k] = np.sqrt(np.diag(Pxx[:, :, k]))
+
+		self.current_time = run_until
 
 		self.Pxx = Pxx
 		self.Ks = Ks
@@ -414,33 +430,41 @@ class NatureSystem(object):
 		self.x0 = np.zeros((n_variables, ll))
 		self.y = np.zeros((n_observations, ll))
 		self.p = np.zeros((n_params, ll))
+		self.current_time = 0
 		if initial_condition is not None:
 			self.x0[:, 0] = initial_condition
 
 	def system(self, x, p):
 		return np.array([])
 
-	def integrate_solveivp(self):
+	def integrate_solveivp(self, run_until=None):
 		p = None
+		if run_until is None:
+			run_until = self.ll
 
 		# noinspection PyUnusedLocal
 		def ode_func(t, x):
 			return self.system(x, p)
 
-		for n in range(self.ll - 1):
+		for n in range(self.current_time, run_until - 1):
 			p = self.p[:, n]
 			xx = self.x0[:, n]
 			sol = solve_ivp(ode_func, [0, self.dT], xx)
 			self.x0[:, n + 1] = sol.y[:, -1]
+		self.observations(self.current_time, run_until)
+		self.current_time = run_until - 1
 
-	def integrateRK4(self):
+	def integrateRK4(self, run_until=None):
 		"""
 		Integrates the system of ordinary differential equations using the fourth order Runge-Kutta method.
 
 		:return: None
 		"""
+
+		if run_until is None:
+			run_until = self.ll
 		nn = int(self.dT / self.dt)  # the integration time step is smaller than dT
-		for n in range(self.ll - 1):
+		for n in range(self.current_time, run_until - 1):
 			xx = self.x0[:, n]
 			for i in range(nn):
 				k1 = self.dt * self.system(xx, self.p[:, n])
@@ -449,9 +473,25 @@ class NatureSystem(object):
 				k4 = self.dt * self.system(xx + k3, self.p[:, n])
 				xx = xx + k1 / 6 + k2 / 3 + k3 / 3 + k4 / 6
 			self.x0[:, n + 1] = xx
+		self.observations(self.current_time, run_until)
+		self.current_time = run_until - 1
 
-	def observations(self):
+	def observations(self, from_ix=None, to_ix=None):
 		pass
+
+
+class ControllableNatureSystem(NatureSystem):
+	def __init__(self, ll, dT, dt, n_variables, n_params, n_observations, initial_condition=None, control=None,
+				 run_until=None):
+		super(ControllableNatureSystem, self).__init__(ll, dT, dt, n_variables, n_params, n_observations, initial_condition)
+		self.control = control
+		self.run_until = run_until
+
+	def system(self, x, p):
+		pass
+
+	def set_control(self, control):
+		self.control = control
 
 
 class FNNature(NatureSystem):
@@ -515,14 +555,19 @@ class FNNature(NatureSystem):
 		z = -0.4 - 1.01 * np.abs(np.sin(z / 2))
 		self.p[0, :] = z
 
-	def observations(self):
+	def observations(self, from_ix=None, to_ix=None):
 		"""
 		Calculates the observations based on the system's state and noise.
 
 		:return: None
 		"""
+
+		if from_ix is None:
+			from_ix = self.current_time
+		if to_ix is None:
+			to_ix = self.ll
 		self.R = self.R0 ** 2 * np.var(self.x0[0, :])
-		self.y[0, :] = self.x0[0, :] + np.sqrt(self.R) * np.random.randn(self.ll)
+		self.y[0, :] = self.x0[0, from_ix:to_ix] + np.sqrt(self.R) * np.random.randn(to_ix-from_ix)
 
 
 if __name__ == '__main__':
