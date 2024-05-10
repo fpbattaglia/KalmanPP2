@@ -23,9 +23,53 @@ Voss's implementation of the unscented Kalman filter
 
 
 import numpy as np
-from scipy.linalg import sqrtm, block_diag
+from scipy.linalg import block_diag
 from scipy.integrate import solve_ivp
 import tqdm
+
+use_jax_sqrtm = True
+if use_jax_sqrtm:
+	import jax
+	import jax.numpy as jnp
+	# jax.config.update("jax_enable_x64", True)
+	print("Using jax sqrtm for jax_sqrtm with backend ", jax.devices())
+
+
+	@jax.jit
+	def sqrtm_newton_schulz_jax(a):
+		k = 10
+		normalization = jnp.trace(a)
+		y = a.copy() / normalization
+		z = jnp.eye(a.shape[0])
+		identity = jnp.eye(a.shape[0])
+		for i in range(k):
+			y_now = 0.5 * y @ (3. * identity - z @ y)
+			z_now = 0.5 * (3. * identity - z @ y) @ z
+			y = y_now
+			z = z_now
+		return y * jnp.sqrt(normalization)
+	@jax.jit
+	def sqrtm_newton_schulz_jax_loop(a):
+
+		def body_fun(i, pars):
+			y, z = pars
+			y_now = 0.5 * y @ (3. * identity - z @ y)
+			z_now = 0.5 * (3. * identity - z @ y) @ z
+			return (y_now, z_now)
+
+		k = 10
+		normalization = jnp.trace(a)
+		y = a.copy() / normalization
+		z = jnp.eye(a.shape[0])
+		identity = jnp.eye(a.shape[0])
+		(y, z) = jax.lax.fori_loop(0, k, body_fun, (y, z))
+		return y * jnp.sqrt(normalization)
+
+	def sqrtm(a):
+		aj = jnp.array(a)
+		return np.array(sqrtm_newton_schulz_jax(aj), dtype=np.float64)
+else:
+	from scipy.linalg import sqrtm
 
 class UKFModel(object):
 	"""A class representing a model for a  Unscented Kalman Filter.
