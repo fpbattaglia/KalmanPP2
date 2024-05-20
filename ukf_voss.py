@@ -114,8 +114,9 @@ class UKFControllableModel(UKFModel):
 	def f_model(self, x, p, ctrl=None):
 		return np.array([])
 
+
 class UKFVoss(object):
-	def __init__(self, model: UKFModel, ll=800, dT=0.2, dt=0.02):
+	def __init__(self, model: UKFModel, ll=800, dT=0.2, dt=0.02, variance_inflation=1.0):
 		"""
 		Initialization method for the class.
 
@@ -145,6 +146,7 @@ class UKFVoss(object):
 		self.x_hat = None
 		self.current_time = 1
 		self.use_solveivp = True
+		self.variance_inflation = variance_inflation
 
 	def evolve_f(self, x):
 		"""
@@ -166,7 +168,7 @@ class UKFVoss(object):
 
 		if self.use_solveivp:
 
-			# noinspection PyUnusedLocal
+			# noinspection PyUnusedLocal,PyShadowingNames
 			def ode_func(t: np.ndarray, xa, p, ctrl=None):
 				if ctrl is not None:
 					return self.model.f_model(xa, p, ctrl)
@@ -182,6 +184,7 @@ class UKFVoss(object):
 					ctrl = self.model.control[:, np.newaxis]
 					args = (p, ctrl)
 				sol = solve_ivp(ode_func, (0, self.dT), xnl[:, i], vectorized=True, args=args)
+				# noinspection PyUnresolvedReferences
 				xnl_out[:, i] = sol.y[:, -1]
 			xnl = xnl_out
 		# 4th order Runge-Kutta integrator with parameters
@@ -299,6 +302,7 @@ class UKFVoss(object):
 		:return: The processed covariance matrix P_out.
 		"""
 		P_out = P.copy()
+		P_out *= self.variance_inflation
 		P_out[:self.dq, :self.dq] = self.model.Q_par
 		return P_out
 
@@ -456,15 +460,16 @@ class NatureSystem(object):
 		"""
 		Integration method using solve_ivp solver for solving ordinary differential equations.
 
-		:param run_until: The time at which integration should stop. If None, integration will run until the system's lower limit.
+		:param run_until: The time at which integration should stop. If None, integration will run until the system's
+		lower limit.
 		:return: None
 
 		"""
-		p = None
+		# p = None
 		if run_until is None:
 			run_until = self.ll
 
-		# noinspection PyUnusedLocal
+		# noinspection PyUnusedLocal,PyShadowingNames
 		def ode_func(t, x, args):
 			return self.system(x, *args)
 
@@ -472,6 +477,7 @@ class NatureSystem(object):
 			args = self.get_system_args(n)
 			xx = self.x0[:, n]
 			sol = solve_ivp(ode_func, [0, self.dT], xx, args=args)
+			# noinspection PyUnresolvedReferences
 			self.x0[:, n + 1] = sol.y[:, -1]
 		self.observations(self.current_time, run_until)
 		self.current_time = run_until
@@ -514,11 +520,14 @@ class ControllableNatureSystem(NatureSystem):
 		self.control = control
 		self.run_until = run_until
 
-	def system(self, x, p, control):
+	def system(self, x, p, control=None):
 		pass
 
 	def set_control(self, control):
 		self.control = control
+
+	def get_control(self):
+		return self.control
 
 	def get_system_args(self, n):
 		p = self.p[:, n]
