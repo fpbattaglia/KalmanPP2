@@ -442,9 +442,24 @@ class NatureSystem(object):
 			self.x0[:, 0] = initial_condition
 
 	def system(self, x, p):
+		"""
+		The function giving the derivatives for the dynamics of the system.
+
+		:param x: the input data array
+		:param p: the input parameters array
+		:return: a vector with the derivatives
+
+		"""
 		return np.array([])
 
 	def integrate_solveivp(self, run_until=None):
+		"""
+		Integration method using solve_ivp solver for solving ordinary differential equations.
+
+		:param run_until: The time at which integration should stop. If None, integration will run until the system's lower limit.
+		:return: None
+
+		"""
 		p = None
 		if run_until is None:
 			run_until = self.ll
