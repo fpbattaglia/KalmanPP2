@@ -144,7 +144,7 @@ class UKFVoss(object):
 		self.Pxx = None
 		self.Ks = None
 		self.x_hat = None
-		self.current_time = 1
+		self.current_time = 0
 		self.use_solveivp = True
 		self.variance_inflation = variance_inflation
 
@@ -265,23 +265,33 @@ class UKFVoss(object):
 		dx = self.dx
 		dy = self.dy
 
-		x_hat = np.zeros((dx, ll))
-
-		if initial_condition is not None:
-			x_hat[:, 0] = initial_condition
+		if self.x_hat is not None:
+			x_hat = self.x_hat
 		else:
-			x_hat[self.dq, 0] = y[0, 0]  # first guess of x_1 set to observation
+			x_hat = np.zeros((dx, ll))
 
-		Pxx = np.zeros((dx, dx, ll))
+			if initial_condition is not None:
+				x_hat[:, 0] = initial_condition
+			else:
+				x_hat[self.dq, 0] = y[0, 0]  # first guess of x_1 set to observation
 
-		Pxx[:, :, 0] = self.Q
+		if self.Pxx is not None:
+			Pxx = self.Pxx
+		else:
+			Pxx = np.zeros((dx, dx, ll))
+			Pxx[:, :, 0] = self.Q
+
+		if self.Ks is not None:
+			Ks = self.Ks
+		else:
+			Ks = np.zeros((dx, dy, ll))  # Kalman gains
 
 		# Variables for the estimation
 		errors = np.zeros((dx, ll))
-		Ks = np.zeros((dx, dy, ll))  # Kalman gains
+
 
 		# Main loop for recursive estimation
-		for k in tqdm.tqdm(range(self.current_time, run_until+1), disable=disable_progress):
+		for k in tqdm.tqdm(range(self.current_time+1, run_until+1), disable=disable_progress):
 			x_hat[:, k], Pxx[:, :, k], Ks[:, :, k] = self.unscented_transform(x_hat[:, k - 1], Pxx[:, :, k - 1], y[:, k], self.R)
 			# Pxx[0, 0, k] = self.model.Q_par
 			Pxx[:, :, k] = self.covariance_postprocessing(Pxx[:, :, k])
@@ -479,7 +489,7 @@ class NatureSystem(object):
 			sol = solve_ivp(ode_func, [0, self.dT], xx, args=args)
 			# noinspection PyUnresolvedReferences
 			self.x0[:, n + 1] = sol.y[:, -1]
-		self.observations(self.current_time, run_until)
+		self.observations(self.current_time, run_until+1)
 		self.current_time = run_until
 
 	def get_system_args(self, n):
