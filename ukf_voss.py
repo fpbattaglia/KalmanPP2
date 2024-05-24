@@ -143,6 +143,7 @@ class UKFVoss(object):
 		self.R = model.R
 		self.Pxx = None
 		self.Ks = None
+		self.errors = None
 		self.x_hat = None
 		self.current_time = 0
 		self.use_solveivp = True
@@ -171,6 +172,7 @@ class UKFVoss(object):
 			# noinspection PyUnusedLocal,PyShadowingNames
 			def ode_func(t: np.ndarray, xa, p, ctrl=None):
 				if ctrl is not None:
+					# noinspection PyArgumentList
 					return self.model.f_model(xa, p, ctrl)
 				else:
 					return self.model.f_model(xa, p)
@@ -259,50 +261,40 @@ class UKFVoss(object):
 		with shape (dx, ll).
 		"""
 
-		ll = self.ll
 		if run_until is None:
 			run_until = self.ll - 1
-		dx = self.dx
-		dy = self.dy
 
-		if self.x_hat is not None:
-			x_hat = self.x_hat
-		else:
-			x_hat = np.zeros((dx, ll))
+		if self.x_hat is  None:
+			self.x_hat = np.zeros((self.dx, self.ll))
 
 			if initial_condition is not None:
-				x_hat[:, 0] = initial_condition
+				self.x_hat[:, 0] = initial_condition
 			else:
-				x_hat[self.dq, 0] = y[0, 0]  # first guess of x_1 set to observation
+				self.x_hat[self.dq, 0] = y[0, 0]  # first guess of x_1 set to observation
 
-		if self.Pxx is not None:
-			Pxx = self.Pxx
-		else:
-			Pxx = np.zeros((dx, dx, ll))
-			Pxx[:, :, 0] = self.Q
+		if self.Pxx is  None:
+			self.Pxx = np.zeros((self.dx, self.dx, self.ll))
+			self.Pxx[:, :, 0] = self.Q
 
-		if self.Ks is not None:
-			Ks = self.Ks
-		else:
-			Ks = np.zeros((dx, dy, ll))  # Kalman gains
+		if self.Ks is  None:
+			self.Ks = np.zeros((self.dx, self.dy, self.ll))  # Kalman gains
 
 		# Variables for the estimation
-		errors = np.zeros((dx, ll))
+		if self.errors is None:
+			self.errors = np.zeros((self.dx, self.ll))
 
 
 		# Main loop for recursive estimation
 		for k in tqdm.tqdm(range(self.current_time+1, run_until+1), disable=disable_progress):
-			x_hat[:, k], Pxx[:, :, k], Ks[:, :, k] = self.unscented_transform(x_hat[:, k - 1], Pxx[:, :, k - 1], y[:, k], self.R)
+			self.x_hat[:, k], self.Pxx[:, :, k], self.Ks[:, :, k] = (
+				self.unscented_transform(self.x_hat[:, k - 1], self.Pxx[:, :, k - 1], y[:, k], self.R))
 			# Pxx[0, 0, k] = self.model.Q_par
-			Pxx[:, :, k] = self.covariance_postprocessing(Pxx[:, :, k])
-			errors[:, k] = np.sqrt(np.diag(Pxx[:, :, k]))
+			self.Pxx[:, :, k] = self.covariance_postprocessing(self.Pxx[:, :, k])
+			self.errors[:, k] = np.sqrt(np.diag(self.Pxx[:, :, k]))
 
 		self.current_time = run_until
 
-		self.Pxx = Pxx
-		self.Ks = Ks
-		self.x_hat = x_hat
-		return x_hat, Pxx, Ks, errors
+		return self.x_hat, self.Pxx, self.Ks, self.errors
 
 	def covariance_postprocessing(self, P):
 		"""
