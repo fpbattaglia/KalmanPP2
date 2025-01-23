@@ -1,1 +1,1 @@
-## Code for Francesco's Psychophysics 2 class
+## Code for Francesco's "Theory of Brain Machine Interfaces" class
