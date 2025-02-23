@@ -27,7 +27,7 @@ from scipy.linalg import block_diag
 from scipy.integrate import solve_ivp
 import tqdm
 
-use_jax_sqrtm = True
+use_jax_sqrtm = False
 if use_jax_sqrtm:
 	import jax
 	import jax.numpy as jnp
@@ -577,9 +577,10 @@ class FNNature(NatureSystem):
 		self.c = c
 		self.R0 = R0
 		self.R = R0
+		print("initializing nature system")
 		self.set_current()
 		self.integrateRK4()
-		self.observations()
+		self.observations(from_ix=0, to_ix=ll)
 
 	def system(self, x, p):
 		"""
@@ -604,13 +605,13 @@ class FNNature(NatureSystem):
 
 		:return: None
 		"""
-
+		print("in observations")
 		if from_ix is None:
 			from_ix = self.current_time
 		if to_ix is None:
 			to_ix = self.ll
 		self.R = self.R0 ** 2 * np.var(self.x0[0, :])
-		self.y[0, :] = self.x0[0, from_ix:to_ix] + np.sqrt(self.R) * np.random.randn(to_ix-from_ix)
+		self.y[0, from_ix:to_ix] = self.x0[0, from_ix:to_ix] + np.sqrt(self.R) * np.random.randn(to_ix-from_ix)
 
 
 if __name__ == '__main__':
