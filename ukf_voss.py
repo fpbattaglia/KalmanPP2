@@ -27,7 +27,7 @@ from scipy.linalg import block_diag
 from scipy.integrate import solve_ivp
 import tqdm
 
-use_jax_sqrtm = False
+use_jax_sqrtm = True
 if use_jax_sqrtm:
 	import jax
 	import jax.numpy as jnp
